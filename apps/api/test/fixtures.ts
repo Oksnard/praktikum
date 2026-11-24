@@ -1,4 +1,4 @@
-import { AiProvider } from "../src/ai";
+import { AiProvider, AiProviderRejection } from "../src/ai";
 import { Evaluation } from "@praktikum/types";
 export const source =
   "Сотрудник регистрирует обращение в CRM. Подтверждение получения отправляется в течение двух часов. Если решение занимает более одного рабочего дня, обращение передаётся руководителю. Возврат средств требует согласования руководителя.";
@@ -27,6 +27,7 @@ export class FixtureProvider extends AiProvider {
   calls = 0;
   responses: unknown[] = [];
   fail = false;
+  reject = false;
   delay = 0;
   available() {
     return true;
@@ -38,6 +39,10 @@ export class FixtureProvider extends AiProvider {
   ) {
     this.calls++;
     if (this.delay) await new Promise((r) => setTimeout(r, this.delay));
+    if (this.reject)
+      throw new AiProviderRejection(429, "credit_balance_exhausted");
+    if (this.responses[0] instanceof AiProviderRejection)
+      throw this.responses.shift();
     if (this.fail) throw new Error("NetworkOutcomeUnknown");
     const input = JSON.parse(prompt.split("\nПредыдущая")[0]) as {
       source: string;

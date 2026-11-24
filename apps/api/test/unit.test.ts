@@ -1,7 +1,12 @@
+import OpenAI from "openai";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { criteria, EvaluationSchema } from "@praktikum/types";
-import { usageCost, validateGrounded } from "../src/ai";
+import {
+  usageCost,
+  validateGrounded,
+  classifyProviderRejection,
+} from "../src/ai";
 import { hashPassword, verifyPassword } from "../src/auth";
 import { evaluation, source } from "./fixtures";
 test("usage pricing rounds up microUSD from actual token counts", () => {
@@ -66,5 +71,35 @@ test("strict shape rejects unknown fields and out of range scores", () => {
   );
   assert.ok(
     !EvaluationSchema.safeParse({ ...evaluation(), extra: "field" }).success,
+  );
+});
+
+test("provider rejections expose only safe status/code and keep uncertain outcomes unknown", () => {
+  const denied = new OpenAI.APIError(
+    429,
+    { code: "credit_balance_exhausted" },
+    "sensitive provider message",
+    new Headers(),
+  );
+  const safe = classifyProviderRejection(denied);
+  assert.equal(safe?.status, 429);
+  assert.equal(safe?.code, "credit_balance_exhausted");
+  assert.ok(!JSON.stringify(safe).includes("sensitive"));
+  assert.equal(
+    classifyProviderRejection(
+      new OpenAI.APIError(500, {}, "unknown", new Headers()),
+    ),
+    null,
+  );
+  assert.equal(classifyProviderRejection(new Error("network unknown")), null);
+  const unsafeCode = new OpenAI.APIError(
+    401,
+    { code: "credential-with-untrusted-content" },
+    "sensitive",
+    new Headers(),
+  );
+  assert.equal(
+    classifyProviderRejection(unsafeCode)?.code,
+    "provider_rejected",
   );
 });

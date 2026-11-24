@@ -1,10 +1,11 @@
+import { Prisma } from "@prisma/client";
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { Test } from "@nestjs/testing";
 import { INestApplication } from "@nestjs/common";
 import { AppModule } from "../src/module";
-import { AiProvider, RESERVE } from "../src/ai";
+import { AiProvider, AiProviderRejection, AiService, RESERVE } from "../src/ai";
 import { Repository } from "../src/repository";
 import { FixtureProvider, evaluation, source } from "./fixtures";
 const provider = new FixtureProvider();
@@ -237,7 +238,180 @@ async function main() {
       (await db.company.findUniqueOrThrow({ where: { id: companyId } }))
         .balance >= 0,
     );
+    // Deterministic ABA: pause a retry after reading REJECTED, let another zero-cost round finish, then resume stale CAS.
+    await db.company.update({
+      where: { id: companyId },
+      data: { balance: 1000000 },
+    });
+    const abaAnswer = {
+      answer: "Ответ для проверки ABA повторного отказа провайдера.",
+    };
+    provider.reject = true;
+    assert.equal(
+      (await req(`/assignments/${aid}/attempts`, employee, abaAnswer)).status,
+      503,
+    );
+    const abaOp = await db.aiOperation.findFirstOrThrow({
+      where: { companyId, status: "REJECTED" },
+      orderBy: { createdAt: "desc" },
+    });
+    let releaseSnapshot: () => void = () => undefined;
+    let snapshotLoaded: () => void = () => undefined;
+    const snapshotGate = new Promise<void>((resolve) => {
+      releaseSnapshot = resolve;
+    });
+    const snapshotReady = new Promise<void>((resolve) => {
+      snapshotLoaded = resolve;
+    });
+    const pausingRepository = new Proxy(db, {
+      get(target, key) {
+        if (key !== "aiOperation") return Reflect.get(target, key);
+        return new Proxy(target.aiOperation, {
+          get(delegate, method) {
+            if (method !== "findUnique") return Reflect.get(delegate, method);
+            return async (args: Prisma.AiOperationFindUniqueArgs) => {
+              const snapshot = await delegate.findUnique(args);
+              if (snapshot?.id === abaOp.id) {
+                snapshotLoaded();
+                await snapshotGate;
+              }
+              return snapshot;
+            };
+          },
+        });
+      },
+    });
+    const assignmentForABA = await db.assignment.findUniqueOrThrow({
+      where: { id: aid },
+      include: { material: true },
+    });
+    const employeeForABA = await db.user.findUniqueOrThrow({
+      where: { id: employeeId },
+    });
+    const staleRetry = new AiService(pausingRepository, provider).run(
+      employeeForABA,
+      "evaluate",
+      {
+        assignmentId: aid,
+        source: assignmentForABA.material.text,
+        criteria: assignmentForABA.criteria,
+        question: assignmentForABA.content,
+        answer: abaAnswer.answer,
+      },
+    );
+    await snapshotReady;
+    assert.equal(
+      (await req(`/assignments/${aid}/attempts`, employee, abaAnswer)).status,
+      503,
+    );
+    const callsBeforeStale = provider.calls;
+    const txBeforeStale = await db.creditTransaction.count({
+      where: { companyId },
+    });
+    releaseSnapshot();
+    await assert.rejects(
+      staleRetry,
+      (error) =>
+        error instanceof Error &&
+        "getStatus" in error &&
+        typeof error.getStatus === "function" &&
+        error.getStatus() === 409,
+    );
+    assert.equal(provider.calls, callsBeforeStale);
+    assert.equal(
+      await db.creditTransaction.count({ where: { companyId } }),
+      txBeforeStale,
+    );
+    assert.equal(
+      (await db.company.findUniqueOrThrow({ where: { id: companyId } }))
+        .balance,
+      1000000,
+    );
+    provider.reject = false;
+    provider.responses = [
+      {},
+      new AiProviderRejection(429, "credit_balance_exhausted"),
+    ];
+    assert.equal(
+      (await req(`/assignments/${aid}/attempts`, employee, abaAnswer)).status,
+      503,
+    );
+    assert.equal(
+      (await db.aiOperation.findUniqueOrThrow({ where: { id: abaOp.id } }))
+        .cost,
+      270,
+    );
+    assert.equal(
+      (await req(`/assignments/${aid}/attempts`, employee, abaAnswer)).status,
+      201,
+    );
+    const settledABA = await db.aiOperation.findUniqueOrThrow({
+      where: { id: abaOp.id },
+      include: { calls: true },
+    });
+    assert.equal(settledABA.cost, 540);
+    assert.equal(
+      settledABA.calls.reduce((sum, call) => sum + call.cost, 0),
+      540,
+    );
+    assert.equal(
+      (await db.company.findUniqueOrThrow({ where: { id: companyId } }))
+        .balance,
+      1000000 - 540,
+    );
     // Unknown outcome conservatively holds reserve and blocks repeat.
+    await db.company.update({
+      where: { id: companyId },
+      data: { balance: 1000000 },
+    });
+    provider.reject = true;
+    const beforeReject = await db.user.findUniqueOrThrow({
+      where: { id: employeeId },
+    });
+    const rejectedAnswer = {
+      answer: "Ответ для проверки известного отказа провайдера по квоте.",
+    };
+    assert.equal(
+      (await req(`/assignments/${aid}/attempts`, employee, rejectedAnswer))
+        .status,
+      503,
+    );
+    assert.equal(
+      (await db.company.findUniqueOrThrow({ where: { id: companyId } }))
+        .balance,
+      1000000,
+    );
+    assert.equal(
+      (await db.user.findUniqueOrThrow({ where: { id: employeeId } })).spent,
+      beforeReject.spent,
+    );
+    const rejectedOp = await db.aiOperation.findFirstOrThrow({
+      where: { companyId, status: "REJECTED" },
+    });
+    const rejectedCall = await db.aiCall.findFirstOrThrow({
+      where: { operationId: rejectedOp.id },
+    });
+    assert.equal(rejectedCall.validationStatus, "PROVIDER_REJECTED");
+    assert.equal(rejectedCall.cost, 0);
+    assert.deepEqual(rejectedCall.responseJson, {
+      status: 429,
+      code: "credit_balance_exhausted",
+    });
+    provider.reject = false;
+    // An explicit request may retry a known rejection; two concurrent retries cannot reserve twice.
+    provider.delay = 150;
+    const retried = await Promise.all([
+      req(`/assignments/${aid}/attempts`, employee, rejectedAnswer),
+      req(`/assignments/${aid}/attempts`, employee, rejectedAnswer),
+    ]);
+    provider.delay = 0;
+    assert.equal(retried.filter((r) => r.status === 201).length, 1);
+    assert.equal(retried.filter((r) => r.status === 409).length, 1);
+    assert.equal(
+      (await db.company.findUniqueOrThrow({ where: { id: companyId } }))
+        .balance,
+      1000000 - 270,
+    );
     await db.company.update({
       where: { id: companyId },
       data: { balance: 1000000 },

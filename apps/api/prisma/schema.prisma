@@ -71,6 +71,7 @@ model AiOperation {
  requestHash String @unique
  kind String
  status String @default("PENDING")
+ revision Int @default(0)
  reserved Int
  cost Int @default(0)
  result Json?
