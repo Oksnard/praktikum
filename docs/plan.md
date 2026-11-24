@@ -25,3 +25,6 @@ Company, User, Session, Material, Assignment, Attempt, AiOperation, AiCall, Cred
 
 ## Риски
 Нет OPENAI_API_KEY: production путь реализуем без подмены; live AI остаётся явно непроверенным. Recorded provider только DI в тестах. Конкурентные AI операции сериализуем advisory lock на company внутри transaction; это ограничивает throughput, но обеспечивает предел баланса и списания. Внешний API не участвует в distributed transaction: аудит pending/failed и консервативная сверка обязательны; неизвестный outcome не повторяем автоматически. Изоляция application-level, не RLS, обязательные adversarial tenant tests.
+
+## Фактический статус
+Bootstrap, backend, schema, auth, AI/billing pipeline и HTTP e2e реализованы и проверены. UI реализован, проходит итоговую browser приёмку. Live API не подтверждён из-за отсутствия ключа; этот пункт не закрывается fixtures. Точное содержание проверок — docs/acceptance.md.

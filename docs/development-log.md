@@ -18,3 +18,9 @@
 - Independent Sol review: блокирующих дефектов после исправления Prisma.JsonNull не найдено. Остались live AI, concurrent limit-edit test и crash recovery ручной процедуры.
 - lint первый запуск выявил unused variable + prefer-const и незаконченный JSX worker; backend исправлен, web исправляет владелец.
 - pnpm dev запущен: Nest3011 и Next3000 успешно стартовали. UI проверяет dispatcher отдельно.
+
+## Инструменты и итоговые проверки
+- Context7 Turbo strict env verified: https://github.com/vercel/turborepo/blob/main/apps/docs/content/docs/reference/configuration.mdx ; DATABASE_URL/PORT/API_URL/OPENAI_API_KEY явно passthrough, dev persistent.
+- Context7 pnpm build script permissions checked https://github.com/pnpm/pnpm.io/blob/main/docs/settings/build.md ; для закреплённого pnpm10.11 используется onlyBuiltDependencies (новый allowBuilds требует10.26+).
+- Полные pnpm lint и pnpm typecheck PASS после готовности исходников UI; pnpm evals PASS всех5 authored snapshots. Не выдаём authored fixtures за live записи.
+- Добавлены PostgreSQL CHECK nonnegative для баланса/расходов/лимитов/AI стоимости как дополнительная защита от ошибок нового кода.

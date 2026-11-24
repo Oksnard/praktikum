@@ -5,3 +5,5 @@ dist/
 .runtime/
 *.log
 .DS_Store
+.turbo/
+*.tsbuildinfo
