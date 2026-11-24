@@ -69,7 +69,7 @@
 | First-visit onboarding/replay/mobile | [ADR0013](decisions/0013-role-aware-onboarding.md), [tour](../apps/web/src/app/onboarding-tour.tsx), local/PUBLIC PW | Ролевые видимые targets; seen flag browser-local, не tenant authority. Полный WCAG audit не заявлен. |
 | Unit+Playwright после deploy / вся логика | Owning tests выше, public live script, final commands в acceptance | Native Node:test+tsx вместо Jest/Vitest — минимальный runner выбор.5 local PW зелёных не выдают за production AI. |
 | Backup originals+PG / restore | [backup](../deploy/backup.mjs), [roundtrip](../apps/api/test/backup-roundtrip.ts) | Два PASS с real authenticated download hash; snapshots предполагают immutable append-only files. Offsite/автоматический crash recovery не заявлены. |
-| Весь проект в public GitHub | Исходники/миграции/local history подготовлены; публичный remote handoff — отдельная GitHub boundary | Имя/URL/commit и факт remote push фиксируются root в итоговой передаче; локальный commit не доказывает публикацию. |
+| Весь проект в public GitHub | Исходники/миграции/local history подготовлены; публичный remote handoff — отдельная GitHub boundary | Remote SHA сверён с локальным; .env/runtime/доступы исключены, история и staged blobs проверены на секреты. AI semantic review выполняется отдельно. |
 
 Последний navigation fix пользователя (EMPLOYEE→«Моё обучение»/#learning вместо командного #results) и оформление upload добавлены после этих browser результатов; их финальный повтор PW фиксирует root в acceptance. Атрибуция public check уточнена до exact company/operation ids; новый платный прогон только из-за изменения harness не проводился, исторические891 не объявляются результатом нового запуска.
 
@@ -93,3 +93,9 @@
 Application isolation без RLS/composite tenant FK; ручной review новых query paths обязателен. Нет полного password/account lifecycle, real payments/email, периодических budget resets, авто-reconciler, scheduled offsite backup и постоянно размещённого hosting. UNKNOWN/PENDING требует доказательной ручной сверки; исходный локальный OpenAI UNKNOWN не был исправлен догадкой и не переносился в новую review БД.
 
 Парсеры имеют измеримые лимиты, но не полный sandbox/antivirus/OCR. Большие документы отклоняются, не суммаризируются. Нагрузочные/хаос/crash/reboot испытания и clean-machine запуск≤5 минут не измерены; prerequisites перечислены в README/material-files.5 eval кейсов и один реальный public flow не доказывают качество на всех корпоративных текстах. Секреты и private credentials не включаются в GitHub/документы/fixtures.
+
+## Дополнительный смысловой аудит и контекстная методика
+
+Новый live тест на пользовательском учебном регламенте обнаружил дефекты, которые не ловились JSON/schema и score bands: обрезание отчёта, ложные пропуски и смешение плана с фактами. Исправление [ADR0014](decisions/0014-task-aware-evaluation.md) замораживает3–6 требований до ответов, проверяет соответствие/checks/источник цитат, вывод ограничен4096, полный request проверяется до резерва; bound195669<200000. Общая шкала40/30/30, no second critic service.
+
+Реальные новые отчёты100/72/8 и склад100 приняты независимым review по смыслу и цитатам. Legacy88 не принят; старый путь новой оценки закрыт409 без финансовых эффектов, owner/manager обновляет задание, история сохраняется. [Полная история](ai-quality-review.md) не скрывает прежние провалы.28focused tests,8offline recordings; программные доменные fixtures не выдаются за real-model проверку всех доменов. Поведение модели на произвольном источнике требует дальнейшего контроля, универсальная правильность не заявлена.

@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { api, COOKIE } from "@/lib/api";
 import {
   AI_RESERVE_CREDITS,
+  AssignmentV2Schema,
+  type Evaluation,
   criteria as gradingCriteria,
   type Dashboard,
 } from "@praktikum/types";
@@ -33,6 +35,10 @@ const date = (s: string) =>
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(s));
+const previousMethod = (evaluation: Evaluation) =>
+  !("version" in evaluation) ||
+  evaluation.assessment_mode === "legacy_question";
+
 const criterionName = (id: string) =>
   gradingCriteria.find((item) => item.id === id)?.label ?? id;
 
@@ -214,7 +220,7 @@ export default async function DashboardPage({
                     </thead>
                     <tbody>
                       {data.attempts.map((a) => (
-                        <tr key={a.id}>
+                        <tr key={a.id} data-attempt-id={a.id}>
                           <td>
                             <div className="person-cell">
                               <span className="mini-avatar">
@@ -233,6 +239,14 @@ export default async function DashboardPage({
                               {a.evaluation.score}
                               <small>/100</small>
                             </span>
+                            {previousMethod(a.evaluation) && (
+                              <span
+                                className="soft-tag"
+                                title="Исторический результат сохранён. Для новых ответов требуется обновить задание."
+                              >
+                                Предыдущая методика
+                              </span>
+                            )}
                           </td>
                           <td>
                             {a.evaluation.gaps.length ? (
@@ -368,6 +382,9 @@ export default async function DashboardPage({
                   const assignment = data.assignments.find(
                     (a) => a.materialId === m.id,
                   );
+                  const currentAssignment =
+                    assignment &&
+                    AssignmentV2Schema.safeParse(assignment.content).success;
                   return (
                     <article className="material-card" key={m.id}>
                       <div className="material-top">
@@ -394,7 +411,35 @@ export default async function DashboardPage({
                             <b>Практическое задание</b>
                             <small>{assignment.content.summary}</small>
                           </div>
-                          {user.role === "EMPLOYEE" && (
+                          {!currentAssignment && (
+                            <div className="small">
+                              <p>
+                                <b>Прежнее задание:</b>{" "}
+                                {assignment.content.question}
+                              </p>
+                              <p>
+                                Это задание нужно обновить. Будет создан новый
+                                вопрос по материалу; прежние ответы и результаты
+                                сохранятся.
+                              </p>
+                              {manager ? (
+                                <form action={generate.bind(null, m.id)}>
+                                  <SubmitButton
+                                    className="button secondary"
+                                    pending="Обновляем задание…"
+                                  >
+                                    Обновить задание
+                                  </SubmitButton>
+                                </form>
+                              ) : (
+                                <p className="muted">
+                                  Попросите владельца или руководителя обновить
+                                  задание, чтобы отправить ответ на оценку.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {user.role === "EMPLOYEE" && currentAssignment && (
                             <form
                               action={submitAnswer.bind(null, assignment.id)}
                             >
@@ -461,7 +506,11 @@ export default async function DashboardPage({
               {data.attempts.length ? (
                 <div className="result-grid">
                   {data.attempts.map((a) => (
-                    <article className="result-card" key={a.id}>
+                    <article
+                      className="result-card"
+                      key={a.id}
+                      data-attempt-id={a.id}
+                    >
                       <div className="result-top">
                         <span
                           className={`score ${a.evaluation.score >= 70 ? "good" : "low"}`}
@@ -471,6 +520,14 @@ export default async function DashboardPage({
                         </span>
                         <span className="muted small">{date(a.createdAt)}</span>
                       </div>
+                      {previousMethod(a.evaluation) && (
+                        <span
+                          className="soft-tag"
+                          title="Исторический результат сохранён. Новые ответы оцениваются после обновления задания."
+                        >
+                          Предыдущая методика
+                        </span>
+                      )}
                       <h3>{a.assignment.content.summary}</h3>
                       <p>{a.evaluation.feedback}</p>
                       <div className="criteria-breakdown">

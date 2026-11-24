@@ -71,3 +71,22 @@
 - Перед публичным GitHub выполнена проверка working tree, staged blobs и всей Git-истории по реальным private credential values и key patterns; совпадений не найдено, секреты не выводились. Remote Oksnard/praktikum создан публичным по последнему уточнению заказчика. Push подтверждается отдельно после завершения приёмки.
 
 - Финальная новая сборка: localPlaywright5/5PASS1.1min,remote3/3PASS14.3s,publicregistration/upload UI PASSнаактуальномhost;0AI. Новый запрос заказчика — содержательная проверка AI-отчёта по трём контролируемым ответам; проводится отдельно, без чтения пользовательских tenant данных.
+
+- Public push завершён: e04fe13 →Oksnard/praktikum/master, remoteSHA=localSHA, isPrivate=false, Wordartifact присутствует вGitHub. Приватныеenv/DB/runtime отсутствуют вtracking.
+
+## Содержательная проверка обнаружила новый дефект
+
+На регламенте1929chars полный и нарушающий ответы не получили валидные отчёты: max1500outputtokens обрезал JSON, все retry оплачивались и честно аудировались. Частичный ответ52 принят, но объяснения неверно трактуют немедленный пятничный ответ. Invalid drafts неверно считают конкретные допустимые действия17:45/17:55 выдуманными политиками и пропускают явно указанные шаги. Итог старого pipeline:4ops/9calls/14885internalcredits, UNKNOWN/PENDING0. Собственная QA компания и платный аудит сохранены; пользовательские компании не читались. FreshSol подтвердил дефекты независимо. После первого обнаруженного системного ограничения старые платные проверки остановлены; batch уже успел завершиться, новые старым контрактом не запускаются. Заказчик явно запросил гибкий контекстный промпт. FreshAstra владеет новой схемой оценки/бюджетом/совместимостью и тестами; это ещё не принятая исправленная версия.
+
+## Контекстная оценка и приёмка policy5
+
+- FreshAstra реализовал Assignment/EvaluationV2: frozen3–6требований соsource/questionquotes, checks сострогимиanswerquotes/IDcoverage; source/prompt/input budgets целиком до резервирования.4096outputtokens, max3calls/action, bound195669<200000. APIunit25/full28focused, HTTPe2e,8offline recordings, typecheck/lint прошли у автора/ревьюера; root повторяет финальный набор после deployment.
+- Policy4 дал95/58/0, ноfull95ложно требовал неизвестный номер; диапазонPASS не был принят как смысловойPASS. Общая поправкаpolicy5 различает план/исполненную операцию, неизвестное значение и требование. Те же sealedanswers/question дали100/72/8,3calls4911credits; независимый Sol подтвердил содержание.
+- Legacyfull88 сохранил ошибки и не принят. Вместо post-answer rubric новый legacy grading закрыт409дофинансов, owner/manager создаёт новоеV2assignment, старые записи и ответы не изменяются; UI показывает прежнюю методику. HTTPe2e подтвердил409/403безрасходов, новыеID и прежние записи.
+- Дополнительный реальный складской сценарий:2ops3002credits,10040/30/30,6met;4целых×12=48/60, повреждённые12 вкарантин, неполная выдача после письменного согласования, закрытие после передачи/подписи. FreshSolsemanticPASS. Новых paid loops нет.
+- Сохранили все14ops/19providercalls двух QA компаний,30750internalcredits total, включаянеудачныеbaseline. Послеbaseline15865; ledger/spent/calls согласованы, сессии0/UNKNOWN/PENDING0. Провайдер invoice не проверялся.
+- Финальная сборка после legacy guard/UI:7.286s,sharedcache/API+Nextrebuilt. API/Web перезапущены через проверенныеPIDприpending0; gateway/tunnel и URL сохранены. Итоговые браузерные/публичные проверки и публикация второго коммита фиксируются следующим пунктом.
+
+- Финальный root набор после deployment:28focused/HTTPe2e/8offlineevals/lint/typecheck/5localPW1.1minPASS; production-smoke3/3PASS20.0s. PublicqualityUI потребовал смены модели после двух follow-up исправленийLuna: Astra наблюдал фактическийDOM и правильно разделил подпись прежнего отчёта/предупреждение старого задания, усилил финансовый снимок до owner-scope. Полный финальный runPASS;3изображения пересняты целиком подstickyheader и осмотрены, все4сессииотозваны,409безsideeffects подтверждён,0AI. Root отдельно прочитал тест и просмотрел fullPNG; type-only DTO/strictTSC проверяются перед commit.
+
+- Root исправил только тестовый DTO (реальныйassignmentId вложенного Attempt) и убрал неверное неиспользуемое поле; strictTSC поизолированномуconfig, ESLint иPrettierPASS. Runtime тест/продукт не менялись, повтор браузера не требовался. Финальный working/history/staged secretscan не обнаружил private credential values/key patterns; значения не выводились.

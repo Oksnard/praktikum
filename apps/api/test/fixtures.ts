@@ -1,6 +1,6 @@
 import { OPENAI_CONFIGURATION } from "../src/ai-config";
 import { AiProvider, AiProviderRejection } from "../src/ai";
-import { Evaluation } from "@praktikum/types";
+import { AssignmentV2Schema, Evaluation } from "@praktikum/types";
 export const source =
   "Сотрудник регистрирует обращение в CRM. Подтверждение получения отправляется в течение двух часов. Если решение занимает более одного рабочего дня, обращение передаётся руководителю. Возврат средств требует согласования руководителя.";
 export function evaluation(score = 100): Evaluation {
@@ -48,18 +48,45 @@ export class FixtureProvider extends AiProvider {
     if (this.fail) throw new Error("NetworkOutcomeUnknown");
     const input = JSON.parse(prompt.split("\nПредыдущая")[0]) as {
       source: string;
+      question?: unknown;
+      answer?: string;
+      assessment_mode?: string;
     };
     return {
       response: this.responses.length
         ? this.responses.shift()
         : kind === "generate"
           ? {
+              version: 2,
+              assessment: ["accuracy", "completeness", "application"].map(
+                (criterion) => ({
+                  id: criterion,
+                  criterion,
+                  requirement: "Опишите действие по источнику",
+                  source_quote: input.source.split(". ")[0] + ".",
+                  question_quote: "Опишите ваши действия.",
+                }),
+              ),
               summary: "Порядок работы с клиентом",
               question:
                 "Клиент ожидает решение два дня. Опишите ваши действия.",
               evidence: [input.source.split(". ")[0] + "."],
             }
-          : evaluation(),
+          : {
+              ...evaluation(),
+              version: 2,
+              assessment_mode: input.assessment_mode ?? "legacy_question",
+              checks: AssignmentV2Schema.safeParse(input.question).success
+                ? AssignmentV2Schema.parse(input.question).assessment.map(
+                    (r) => ({
+                      rule_id: r.id,
+                      status: "met",
+                      answer_quotes: [input.answer!],
+                      explanation: "DI fixture, not a semantic assessment",
+                    }),
+                  )
+                : [],
+            },
       promptTokens: 1000,
       completionTokens: 200,
     };

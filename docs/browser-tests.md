@@ -87,3 +87,13 @@ node --env-file=.runtime/review/api.env --env-file=.runtime/review/browser.env -
 Current hostname was recreated after a long pause and detached services were restarted; new-host registration and upload UI checks PASS with0AI calls. The891-credit real AI evidence retains its original hostname/timestamp. No paid run was repeated for a tunnel alias or presentation-only changes.
 
 Финальный прогон после переноса replay в шапку: local5/5PASS1.1min (`.runtime/playwright/final-polish.log`), remote3/3PASS14.3s (`.runtime/review/final-remote-smoke.log`). Current-host registration/upload UI PASS; все новые pending/no-overlap проверки успешны, данные тестов удалены,0AI.
+
+## Real AI reports and legacy guard in the published UI
+
+Final deployed build: local5/5PASS1.1min, production-smoke3/3PASS20.0s. `tests/public-quality-ui-check.mts` uses only the retained fictional QA workspaces and their private access files. It verifies the independently accepted100/72/8 reports against exact attempt IDs, explanations/source evidence/recommendations, owner detail,390px width, historical badges and owner update action. It never clicks generation/update. A direct old-assignment submission returns409; owner-scoped before/after balance, all users’ spent, operations, ledger and attempt IDs remain identical. All auth sessions are revoked.
+
+```sh
+node --env-file=.runtime/review/browser.env --import tsx tests/public-quality-ui-check.mts
+```
+
+Prerequisite: operator-created private baseline/V2 QA state and sealed results under ignored `.runtime/ai-quality-assessment*`; these credentials/artifacts are intentionally absent from GitHub. This is a no-AI read/denial check, not a replacement for paid semantic QA. Accepted evidence `.runtime/review/quality-ui-result.json` and `quality-ui-astra-acceptance.log`. Three cropped result images preserve the complete card below the sticky header; no credential forms, traces or video are captured. Earlier failures were incorrect test selectors and screenshots, retained in private logs; the final complete run passed.

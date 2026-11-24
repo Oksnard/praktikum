@@ -244,7 +244,6 @@ async function main() {
     provider.responses = [
       null,
       { ...evaluation(), evidence: ["Выдуманная цитата"] },
-      evaluation(),
     ];
     const answer = await req(`/assignments/${aid}/attempts`, employee, {
       answer:
@@ -867,6 +866,103 @@ async function main() {
       (await db.company.findUniqueOrThrow({ where: { id: companyId } }))
         .balance,
       1000000 - RESERVE,
+    );
+    // Legacy records stay readable, but new grading is rejected before any reservation/provider call.
+    provider.fail = false;
+    const legacyMaterial = await req("/materials", owner, {
+      title: "Исторический материал",
+      text: source,
+    });
+    const legacyContent = {
+      summary: "Старая методика",
+      question: "Опишите действия по регламенту.",
+      evidence: ["Сотрудник регистрирует обращение в CRM."],
+    };
+    const legacyOperation = await db.aiOperation.create({
+      data: {
+        companyId,
+        userId: employeeId,
+        kind: "generate",
+        requestHash: randomUUID(),
+        status: "SUCCESS",
+        reserved: 0,
+        result: legacyContent,
+      },
+    });
+    const legacy = await db.assignment.create({
+      data: {
+        companyId,
+        materialId: legacyMaterial.data.id as string,
+        operationId: legacyOperation.id,
+        content: legacyContent,
+        criteria: assignmentForABA.criteria as Prisma.InputJsonValue,
+      },
+    });
+    const historic = await db.attempt.create({
+      data: {
+        companyId,
+        assignmentId: legacy.id,
+        userId: employeeId,
+        operationId: legacyOperation.id,
+        answer: "Исторический ответ сотрудника",
+        evaluation: evaluation() as Prisma.InputJsonValue,
+      },
+    });
+    const financialState = async () => ({
+      company: await db.company.findUniqueOrThrow({ where: { id: companyId } }),
+      user: await db.user.findUniqueOrThrow({ where: { id: employeeId } }),
+      operations: await db.aiOperation.count({ where: { companyId } }),
+      calls: await db.aiCall.count({ where: { companyId } }),
+      ledger: await db.creditTransaction.count({ where: { companyId } }),
+      providerCalls: provider.calls,
+    });
+    const beforeLegacy = await financialState();
+    const blockedLegacy = await req(
+      `/assignments/${legacy.id}/attempts`,
+      employee,
+      { answer: "Новый ответ на старое задание" },
+    );
+    assert.equal(blockedLegacy.status, 409);
+    assert.match(String(blockedLegacy.data.message), /обновить задание/);
+    assert.deepEqual(await financialState(), beforeLegacy);
+    assert.equal(
+      (await req(`/materials/${legacy.materialId}/generate`, employee, {}))
+        .status,
+      403,
+    );
+    assert.deepEqual(await financialState(), beforeLegacy);
+    const ownerUpgrade = await req(
+      `/materials/${legacy.materialId}/generate`,
+      owner,
+      {},
+    );
+    const managerUpgrade = await req(
+      `/materials/${legacy.materialId}/generate`,
+      manager,
+      {},
+    );
+    for (const upgraded of [ownerUpgrade, managerUpgrade]) {
+      assert.equal(upgraded.status, 201);
+      assert.notEqual(upgraded.data.id, legacy.id);
+      assert.equal((upgraded.data.content as { version: number }).version, 2);
+    }
+    assert.deepEqual(
+      await db.assignment.findUniqueOrThrow({ where: { id: legacy.id } }),
+      legacy,
+    );
+    assert.deepEqual(
+      await db.attempt.findUniqueOrThrow({ where: { id: historic.id } }),
+      historic,
+    );
+    const afterUpgrade = await req("/dashboard", employee);
+    const materialAssignments = (
+      afterUpgrade.data.assignments as { id: string; materialId: string }[]
+    ).filter((a) => a.materialId === legacy.materialId);
+    assert.equal(materialAssignments[0].id, managerUpgrade.data.id);
+    assert.ok(
+      (afterUpgrade.data.attempts as { id: string }[]).some(
+        (a) => a.id === historic.id,
+      ),
     );
     assert.equal((await req("/auth/logout", employee, {})).status, 201);
     assert.equal((await req("/me", employee)).status, 401);

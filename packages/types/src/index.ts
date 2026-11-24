@@ -34,8 +34,46 @@ export const EvaluationSchema = z
     personal_material: requiredText,
   })
   .strict();
-export type AssignmentContent = z.infer<typeof AssignmentSchema>;
-export type Evaluation = z.infer<typeof EvaluationSchema>;
+// Persisted v1 contracts remain readable; new AI operations use v2 exclusively.
+export const AssessmentRuleSchema = z
+  .object({
+    id: requiredText.max(40),
+    criterion: z.enum(["accuracy", "completeness", "application"]),
+    requirement: requiredText.max(350),
+    source_quote: requiredText.max(500),
+    question_quote: requiredText.max(350),
+  })
+  .strict();
+export const AssignmentV2Schema = AssignmentSchema.extend({
+  version: z.literal(2),
+  assessment: z.array(AssessmentRuleSchema).min(3).max(6),
+}).strict();
+export const EvaluationV2Schema = EvaluationSchema.extend({
+  version: z.literal(2),
+  assessment_mode: z.enum(["snapshot", "legacy_question"]),
+  checks: z
+    .array(
+      z
+        .object({
+          rule_id: requiredText.max(40),
+          status: z.enum(["met", "partial", "missing", "contradicted"]),
+          answer_quotes: z.array(requiredText.max(500)).max(2),
+          explanation: requiredText.max(350),
+        })
+        .strict(),
+    )
+    .max(6),
+}).strict();
+export const StoredAssignmentSchema = z.union([
+  AssignmentV2Schema,
+  AssignmentSchema,
+]);
+export const StoredEvaluationSchema = z.union([
+  EvaluationV2Schema,
+  EvaluationSchema,
+]);
+export type AssignmentContent = z.infer<typeof StoredAssignmentSchema>;
+export type Evaluation = z.infer<typeof StoredEvaluationSchema>;
 export const LoginSchema = z
   .object({
     email: z.string().email().max(200),

@@ -45,16 +45,20 @@ Seed идемпотентен, не сбрасывает изменённые п
 4. При первом визите запускается обучение по доступным роли разделам; кнопка «Обучение» запускает его снова. Есть пропуск, Escape, навигация назад/вперёд и мобильная версия.
 5. На AI действие временно резервируются200000 кредитов. После ответа учитывается usage, остаток возвращается. Успешный повтор использует результат без нового списания. 1 кредит=1microUSD **внутреннего тарифа**, не точная сумма счёта провайдера: [ADR0010](docs/decisions/0010-deepseek-and-internal-tariff.md).
 
+## Статус дополнительной проверки ИИ
+
+Для каждого нового задания ИИ заранее сохраняет3–6 применимых требований. Оценщик проверяет их по смыслу и точным цитатам ответа, различает факты источника и допустимый план сотрудника. Общая шкала40/30/30 сохранена. Полные JSON-отчёты ограничены4096outputtokens; полный SDK запрос проверяется до списания. На реальных контрольных ответах получены100/72/8, на другом складском задании100; независимый review подтвердил смысловую корректность этой выборки. Старые задания доступны для чтения; для новых ответов владелец/руководитель создаёт обновлённое задание кнопкой «Обновить задание». История сохраняется. [Дизайн и промпт](docs/ai-evaluation-design.md), [отчёт с неудачными и успешными этапами](docs/ai-quality-review.md). Эти примеры не доказывают безошибочность на любом материале.
+
 ## Команды проверки
 
 ```bash
 pnpm lint
 pnpm typecheck
-pnpm test              # 22 unit/focused tests: core, документы, Origin, gateway
+pnpm test              # 28 unit/focused tests: API25, Origin1, gateway2
 pnpm test:e2e          # настоящий HTTP + PostgreSQL, AI через DI fixture
 pnpm test:browser      # 5 Playwright Chromium сценариев, реальная БД, DI AI
-pnpm evals             # 5 записанных реальных DeepSeek ответов, без внешнего API
-pnpm evals --live      # платный провайдер либо успешный cache; только локальная test БД
+pnpm evals             # 8 recordings:5 исторических+3 task-aware, без внешнего API
+pnpm evals --live      # только3 modern fixtures, явный собственный QA tenant; см.docs/evals.md
 pnpm build
 node --env-file=.env --import tsx apps/api/test/backup-roundtrip.ts
 ```
@@ -63,7 +67,7 @@ node --env-file=.env --import tsx apps/api/test/backup-roundtrip.ts
 
 ## Эксплуатационные границы
 
-Один кейс на материал, критерии хранятся в компании и snapshot задания без UI редактора. PaymentProvider и NotificationSender — явные Demo реализации; реальной оплаты и отправки email нет. DeepSeek JSON mode проверяется локально через Zod/evidence с максимум2 retry; альтернативный OpenAI adapter сохраняет strict JSON Schema. AI рекомендации требуют контроля руководителя. PDF-сканы без OCR, изображения и сложная вёрстка не распознаются; длинные материалы отклоняются без усечения.
+Один актуальный кейс на материал, предыдущие версии остаются в истории; критерии и требования сохраняются в задании до ответов, без UI редактора правил. PaymentProvider и NotificationSender — явные Demo реализации; реальной оплаты и отправки email нет. DeepSeek JSON mode проверяется локально через Zod/evidence с максимум2 retry; альтернативный OpenAI adapter сохраняет strict JSON Schema. AI рекомендации требуют контроля руководителя. PDF-сканы без OCR, изображения и сложная вёрстка не распознаются; длинные материалы отклоняются без усечения.
 
 Изоляция реализована в приложении, PostgreSQL RLS не включён. Неизвестный API исход/сбой процесса удерживает резерв в UNKNOWN/PENDING до [ручной сверки](docs/reconciliation.md). В исходной локальной БД сохранён исторический OpenAI UNKNOWN; он не переносился в review БД. Нет SSO/reset password, публичной автоматической регистрации без gate, автоматического reconciler, offsite backup и постоянного hosting. Paired backup БД+оригиналов и восстановление проверены; Mac backup не поставлен на расписание.
 
@@ -72,4 +76,5 @@ node --env-file=.env --import tsx apps/api/test/backup-roundtrip.ts
 - [ТЗ и согласованные дополнения](docs/requirements.md), [план](docs/plan.md), [аудит соответствия](docs/project-audit.md)
 - [Архитектура](docs/architecture.md), [API](docs/api.md), [ADR](docs/decisions/README.md), [Demo границы](docs/decisions/mocks.md)
 - [Файлы](docs/material-files.md), [обучение](docs/onboarding.md), [публикация/backup](docs/deployment.md), [сверка денег](docs/reconciliation.md)
+- [Контекстная оценка ИИ](docs/ai-evaluation-design.md), [проверка качества](docs/ai-quality-review.md)
 - [Приёмка](docs/acceptance.md), [Playwright](docs/browser-tests.md), [evals](docs/evals.md), [журнал](docs/development-log.md), [очистка](docs/maintenance-cleanup.md)

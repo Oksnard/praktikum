@@ -77,7 +77,7 @@ BasicAuth gate допускает только проверяющих к transpo
 
 Активный реальный provider DeepSeek `deepseek-flash`: JSON mode + переданные Zod-generated schema/example + локальная строгая валидация. Серверной гарантии strict JSON Schema у него нет; это [согласованное изменение](decisions/0010-deepseek-and-internal-tariff.md). OpenAI adapter сохраняет strict json_schema, но его успешный live сценарий не подтверждён из-за отказа по балансу. Фикстуры включаются только тестовым DI.
 
-- Core input ≤200000 UTF8 bytes, source ≤12000/answer ≤8000 символов. Output ≤1500 tokens, temperature0 для оценки и0.2 генерации; до2 retry после невалидного ответа.
+- Core input ≤200000 UTF8 bytes, source ≤12000/answer ≤8000 символов. Полный provider body (schema/system/retry включены) ≤200000 байт до резерва. Output ≤4096 tokens, temperature0 для оценки и0.2 генерации; до2 retry после невалидного ответа.
 - Hash содержит tenant/user/kind/source/answer/criteria/provider/requested model/tariff/schema version (сейчас3). SUCCESS возвращает cache; FAILED не повторяется автоматически; PENDING/UNKNOWN блокируют replay.
 - Короткая transaction атомарно резервирует200000 company credits и user.spent. Provider call вне DB transaction. Уникальный hash/revision CAS защищают duplicate/REJECTED retry, включая ABA; ledger keys содержат reservation UUID.
 - Каждый ответ с usage, включая INVALID, получает AiCall и целочисленную стоимость. `model` — requested catalog alias, `responseModel` — возвращённый id (исторический null допустим); cached tokens входят в input, не добавляются второй раз.
@@ -95,3 +95,5 @@ Driver.js tour запускается для первого посещения u
 Compiled API/common package проверены на Node22.23.5 smoke; полный текущий Mac runtime проверялся на Node25.9. Backup — paired DB dump + uploads archive + SHA manifest, восстановление в отдельную БД с authenticated download hash проверено дважды. Автозапуск/systemd/nginx, offsite backup и постоянный SLA для временного Mac URL не заявлены.
 
 Источники Context7 и owning-source: [Nest DI/guards](https://github.com/nestjs/docs.nestjs.com/blob/master/content/fundamentals/execution-context.md), [Next Server Actions/origins](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverActions), [Prisma transactions](https://www.prisma.io/docs/orm/prisma-client/queries/transactions), [DeepSeek JSON mode](https://api-docs.deepseek.com/guides/json_mode), [Zod strings](https://zod.dev/api?id=strings). Свежие результаты проверок — [project audit](project-audit.md).
+
+Task-aware assessment V2, legacy compatibility и резерв195669≤200000 описаны в [ADR0014](decisions/0014-task-aware-evaluation.md).

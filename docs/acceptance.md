@@ -9,10 +9,10 @@
 | install/generate/migrate |PASS, lockfile; Prisma6.19;6 committed migrations применены|
 | pnpm lint |PASS после финальных изменений|
 | pnpm typecheck |PASS API/shared/Next|
-| pnpm test |**22/22 PASS**: API19 (core8+documents11), BFF Origin1, gateway2|
+| pnpm test |**28/28 PASS**: API25 (core/assessment14+documents11), BFF Origin1, gateway2|
 | HTTP+PostgreSQL e2e |PASS; полный suite повторён root после свежих isolation assertions|
-| pnpm evals |**5/5 PASS**, записанные реальные DeepSeek ответы, без новых API вызовов|
-| pnpm build |PASS shared/API/Next; последняя сборка6.206s (shared/API cache, Next пересобран); она обслуживает текущий review|
+| pnpm evals |**8/8 PASS**,5 исторических+3 принятых task-aware записанных DeepSeek ответа, без новых API вызовов|
+| pnpm build |PASS shared/API/Next; последняя сборка7.286s (shared cache, API и Next пересобраны); она обслуживает текущий review|
 | Compiled Node22 smoke |PASS health200 и production default registration403, без tsx runtime|
 | Backup/restore |PASS, две отдельные временные БД, paired dump+files+hash manifest, настоящий authenticated download после restore|
 | git diff --check |PASS; секреты/runtime исключены из публикации|
@@ -30,7 +30,7 @@ Document tests: реальные кириллические DOCX/DOC/PDF/TXT(UTF
 | Проверка | Фактический результат |
 |---|---|
 | Локальный Chromium suite |**5/5 PASS,1.1min,retries0**, бизнес-флоу/roles/docs/limits, invalid login, role tours, admin, mobile|
-| Public read-only smoke |**3/3 PASS,14.3s**, OWNER/EMPLOYEE/SUPER_ADMIN через настоящий HTTPS gate|
+| Public read-only smoke |**3/3 PASS,20.0s**, OWNER/EMPLOYEE/SUPER_ADMIN через настоящий HTTPS gate|
 | Public real AI business flow |PASS DOCX upload/original hash→DeepSeek task→employee answer/evaluation→manager report|
 | Public financial check |2 real provider calls,891internalcredits; balance delta=AiCall.cost; cached generate0|
 | Public result |score100/100,2точныецитаты, критерии/пробелы/рекомендации/персональный материал|
@@ -67,4 +67,19 @@ OCR отсутствует; PDF нужен текстовый слой. Слож
 
 ## Дополнительная оценка содержательного качества ИИ
 
-По последнему запросу заказчика выполняется отдельная реальная проверка трёх контролируемых ответов по предоставленному учебному регламенту. Она оценивает смысл баллов и рекомендаций, а не только Zod/цитаты. Результат будет записан отдельно в ai-quality-review.md; текущие зелёные технические тесты не подменяют эту проверку.
+Первый содержательный прогон обнаружил обрезание1500-token JSON и ложные замечания. Он сохранён как историческийFAIL:4ops/9calls/14885internalcredits. После перехода к frozen assessment и policy5 реальные одинаковые контрольные ответы получили**100/72/8**, все с первой попытки, без ложных пропусков в принятом полном ответе. Независимый Sol проверил требования до оценок и затем все критерии/checks/цитаты/gaps/recommendations. Другой складской сценарий:100, расчёт48/60,12 повреждённых изолированы, условия согласования и подписи соблюдены. Это два реальных вопроса/четыре контролируемых ответа, а не доказательство качества любой задачи.
+
+Дополнительный old-task regression88 сохранил ложные замечания. Он **не** объявлен исправленным: новые оценки старых заданий теперь получают409 до бюджета/операции/провайдера. OWNER/MANAGER создаёт новое V2 задание с frozen требованиями; старые assignment/attempt/report не меняются и помечены «Предыдущая методика». HTTP e2e проверяет нулевые финансовые эффекты409/403, новыйID и сохранность старых записей.
+
+Все paid QA записи сохранены. Старый QA tenant:5ops/10calls/16302credit, новый:9ops/9calls/14448credit; суммарно30750 (из них15865 после baseline). SQL ledger/usage/operation/spent/balance согласованы, UNKNOWN/PENDING0; контрольные сессии отозваны. Сырые данные/пароли игнорируются Git. Схема и финансовая граница: [ai-evaluation-design.md](ai-evaluation-design.md), полная честная история: [ai-quality-review.md](ai-quality-review.md). Экспортированы3 принятые реальные записи policy5 с provenance; исторические5 не переписаны.
+
+
+Публичный GitHub: https://github.com/Oksnard/praktikum . Первый release e04fe13 отправлен вmaster, remote SHA совпал с локальным; API подтвердилpublic visibility и наличие проверенного Word-файла. История и staged blobs прошли проверку известных private credential values/key patterns, совпадений нет. Полный raw/runtime audit не публикуется.
+
+## Финальная проверка опубликованных отчётов
+
+После финальной сборки с legacy guard root повторил28focused tests,HTTPe2e,8offlineevals,lint/typecheck и5localPlaywright(1.1min):PASS. Production-smoke3/3PASS20.0s на актуальном HTTPS.
+
+Отдельный `tests/public-quality-ui-check.mts` через публичный сайт: **PASS**. Сверены реальные100/72/8, все критерии/explanations/evidence/recommendations, разбор владельца,390px без горизонтального переполнения. Карточки полностью попадают в PNG ниже sticky шапки. Старые результаты отмечены прежней методикой, у owner видна кнопка обновления; employee не имеет формы ответа на старое задание. Прямой API POST получил409; owner snapshots подтвердили неизменность баланса, user.spent всех пользователей, операций, ledger и attempts. Все4 созданные сессии успешно отозваны,0AI. Первые тестовые ошибки были ошибками селекторов/расположения подписи; исправлены после эскалации сLuna кAstra, продукт ради теста не менялся.
+
+Локальные evidence: `.runtime/final-delivery-*.log`, `.runtime/playwright/final-delivery-browser.log`, `.runtime/review/final-ai-remote-smoke.log`, `.runtime/review/quality-ui-astra-acceptance.log`, `quality-ui-result.json`. Снимки в [full](screenshots/ai-quality-full.png), [partial](screenshots/ai-quality-partial.png), [unsafe](screenshots/ai-quality-unsafe.png). Приватные QA доступы добавлены только в `.runtime/review/access.txt`600.

@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Принятые решения описывают фактический MVP. Более поздние ADR0010–0013 уточняют первоначальные формулировки после явных изменений заказчика; старые записи не следует читать как утверждение, что активный DeepSeek имеет OpenAI strict schema или что file upload отсутствует.
+Принятые решения описывают фактический MVP. Более поздние ADR0010–0014 уточняют первоначальные формулировки после явных изменений заказчика; старые записи не следует читать как утверждение, что активный DeepSeek имеет OpenAI strict schema или что file upload отсутствует.
 
 | ADR | Решение | Состояние |
 |---|---|---|
@@ -17,6 +17,7 @@
 |[0011](0011-temporary-mac-review.md)|Temporary Mac HTTPS/private review gate|accepted; не VPS/SLA|
 |[0012](0012-private-document-materials.md)|DOCX/DOC/PDF/TXT parsers и private FileStorage|accepted|
 |[0013](0013-role-aware-onboarding.md)|Driver.js first-visit/role-aware onboarding|accepted|
+|[0014](0014-task-aware-evaluation.md)|Task-aware assessment V2, answer evidence и bounded4096 output|accepted; ограниченная V2 live приёмка PASS, legacy new grading closed|
 
 - [Текущие реальные адаптеры/моки и границы замены](mocks.md)
 - [Матрица требований/проверок/ограничений](../project-audit.md)

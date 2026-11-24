@@ -33,7 +33,7 @@ Production defaults `ALLOW_PUBLIC_REGISTRATION=false`, `ALLOW_MOCK_TOPUPS=false`
 ## Размеры, данные и окна
 
 - Email≤200, password10–128; name/company2–100, material title3–150.
-- Text60–12000 символов, answer10–8000. Общий core AI JSON input≤200000 UTF8 bytes; никаких скрытых усечений.
+- Text60–12000 символов, answer10–8000. Общий core AI JSON input≤200000 UTF8 bytes; полный provider body со schema/system/retry также≤200000 байт (проверяется до резерва). Никаких скрытых усечений.
 - Upload: один DOCX/DOC/PDF/TXT≤5МиБ, одно поле title; BFF cap5МиБ+8192, gateway/Next6МиБ. Извлечённый текст60–12000, binary в AI не отправляется. [Политика файлов](material-files.md).
 - `limit`0–10000000; topup amount1000–10000000 целых credits. Один key+та же сумма идемпотентны; другой amount с использованным key →409. Key namespaced company.
 - Timestamps сериализуются ISO8601. Материал включает attachmentName/Mime/Size nullable; attachmentKey — внутренний и не выдаётся в upload/dashboard/assignment views.
@@ -46,7 +46,7 @@ AdminLedger totals — глобальные компании/transactions/operat
 
 AssignmentContent: `summary,question,evidence`. Evaluation: `score,criteria[{id,score,explanation}],evidence,unsupported_claims,gaps,feedback,recommendations,personal_material`. Обязательные учебные/feedback строки непустые; ids/max/sum критериев стабильны, цитаты должны точно присутствовать в source. При score>0 evidence не может быть пустым.
 
-Активный AI_PROVIDERdeepseek/`deepseek-flash`; OpenAI optional. DeepSeek JSON mode валидируется локально Zod, OpenAI strict JSON Schema. До2 исправляющих retry, output≤1500 tokens. Hash включает tenant/user/input/criteria/provider/model/tariff/schemaVersion3. SUCCESS cache не вызывает provider; FAILED терминален до нового input/version. REJECTED допускает явный новый раунд через revision CAS; PENDING/UNKNOWN replay409 до ручной сверки.
+Активный AI_PROVIDERdeepseek/`deepseek-flash`; OpenAI optional. DeepSeek JSON mode валидируется локально Zod, OpenAI strict JSON Schema. До2 исправляющих retry, output≤4096 tokens. Hash включает tenant/user/input/criteria/provider/model/tariff/policyVersion5. SUCCESS cache не вызывает provider; FAILED терминален до нового input/version. REJECTED допускает явный новый раунд через revision CAS; PENDING/UNKNOWN replay409 до ручной сверки.
 
 Перед AI резерв200000, потом возвращается unused R−C. Credits — внутренний tariff microUSD по фактическим uncached/cached/output tokens, не provider invoice. AiCall: provider/requested model/responseModel/tariffVersion/promptTokens/cachedPromptTokens/completionTokens/cost/latencyMs/requestHash/responseJson/validationStatus. Исторический responseModel nullable. Operation.cost cumulative across rounds. UNKNOWN usage0 — sentinel, не подтверждённый нулевой invoice. [Формула и раунды](decisions/0005-billing.md), [сверка](reconciliation.md).
 
@@ -59,3 +59,5 @@ AssignmentContent: `summary,question,evidence`. Evaluation: `score,criteria[{id,
 - Tour localStorage хранит только seen flag на userId, не token/tenant authority. [Onboarding ADR](decisions/0013-role-aware-onboarding.md).
 
 Private API порт не должен публиковаться reverse proxy или tunnel. Public smoke использует браузерный HTTPS flow, а проверка usage/баланса может читать приватный Nest API с тем же авторизованным аккаунтом: [сценарий](../tests/public-live-check.mts).
+
+Новые задания/оценки используют V2: snapshot применимых требований и checks с цитатами ответа. Исторические задания и оценки читаются; новая оценка задания без snapshot возвращает409 до резервирования. OWNER/MANAGER обновляет через generate(materialId), создавая новое задание; старые записи сохраняются. [Дизайн и ограничения](ai-evaluation-design.md).
