@@ -21,10 +21,12 @@
 Оценка для обычной разработки: 84–124 ч, 11–16 рабочих дней, при условной ставке 3000 ₽/ч — 252000–372000 ₽. Это допущение для бюджета, не выставленный счёт и не измеренный срок агентной сессии. Внешние расходы: локальная проверка без hosting; модель gpt-4o-mini, ставка 0.15/0.60 USD за миллион входных/выходных токенов, требуется проверить перед коммерческим запуском; реальный API требует ключ и отдельный бюджет. Агентная сессия фиксирует wall-clock и итерации отдельно без выдуманных человеко-часов.
 
 ## Модель и контракты
+
+Изменение по последнему запросу заказчика: активный AI — DeepSeek `deepseek-flash`; OpenAI остаётся альтернативой. JSON mode + локальная Zod/grounding валидация, фиксированный внутренний тариф с cache tokens и резерв200000. Первоначальная оценка труда остаётся бюджетным ориентиром; фактическая приёмка и трудозатраты — в docs/acceptance.md, изменение провайдера — ADR0010.
 Company, User, Session, Material, Assignment, Attempt, AiOperation, AiCall, CreditTransaction, Notification. Все tenant сущности companyId. Backend принимает opaque bearer session; Next хранит его в HttpOnly cookie. API /auth/register, /auth/login, /auth/logout, /me, /dashboard, /materials, /materials/:id/generate, /assignments/:id/attempts, /users, /users/:id/limit, /credits/topup, /admin/ledger. Полные контрактные формы в packages/types и docs/api.md.
 
 ## Риски
-Нет OPENAI_API_KEY: production путь реализуем без подмены; live AI остаётся явно непроверенным. Recorded provider только DI в тестах. Конкурентные AI операции сериализуем advisory lock на company внутри transaction; это ограничивает throughput, но обеспечивает предел баланса и списания. Внешний API не участвует в distributed transaction: аудит pending/failed и консервативная сверка обязательны; неизвестный outcome не повторяем автоматически. Изоляция application-level, не RLS, обязательные adversarial tenant tests.
+Нет OPENAI_API_KEY: production путь реализуем без подмены; live AI остаётся явно непроверенным. Recorded provider только DI в тестах. Первоначальный advisory lock заменён атомарными conditional UPDATE и revision CAS; это обеспечивает предел баланса/лимита и защищает конкурентный повтор без долгой transaction вокруг API. Внешний API не участвует в distributed transaction: аудит pending/failed и консервативная сверка обязательны; неизвестный outcome не повторяем автоматически. Изоляция application-level, не RLS, обязательные adversarial tenant tests.
 
 ## Фактический статус
 Bootstrap, backend, schema, auth, AI/billing pipeline и HTTP e2e реализованы и проверены. UI реализован, проходит итоговую browser приёмку. Live API не подтверждён из-за отсутствия ключа; этот пункт не закрывается fixtures. Точное содержание проверок — docs/acceptance.md.

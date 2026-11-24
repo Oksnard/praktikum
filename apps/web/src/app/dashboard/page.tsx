@@ -584,7 +584,7 @@ export default async function DashboardPage({
                       <tr>
                         <th>УЧАСТНИК</th>
                         <th>РОЛЬ</th>
-                        <th>ПОТРАТИЛ</th>
+                        <th>РАСХОДЫ И РЕЗЕРВЫ</th>
                         <th>ЛИЧНЫЙ ЛИМИТ</th>
                         <th />
                       </tr>
@@ -653,7 +653,7 @@ export default async function DashboardPage({
                 {user.role === "EMPLOYEE" && (
                   <div className="balance-total personal-limit">
                     <small>
-                      Ваш лимит · использовано {credits(user.spent)}
+                      Ваш лимит · расходы и резервы {credits(user.spent)}
                     </small>
                     <b>
                       {credits(Math.max(0, user.limit - user.spent))}{" "}
@@ -721,7 +721,7 @@ export default async function DashboardPage({
                                 : t.kind === "RESERVE"
                                   ? "Резерв AI"
                                   : t.kind === "AI_SETTLEMENT"
-                                    ? "Расчёт AI"
+                                    ? "Возврат неиспользованного резерва"
                                     : t.kind}
                             {t.kind === "MOCKED" && (
                               <span className="demo-tag">DEMO</span>
@@ -748,15 +748,30 @@ export default async function DashboardPage({
               </div>
               <div className="usage-card">
                 <p className="eyebrow">РАСХОДЫ НА ИИ</p>
-                <b>Последние операции</b>
+                <b>Операции ИИ</b>
                 {data.operations.length ? (
-                  data.operations.slice(0, 5).map((o) => (
+                  data.operations.map((o) => (
                     <div className="usage-row" key={o.id}>
                       <span>
                         <i className="usage-dot" />
-                        {o.status === "SUCCESS" ? "Завершено" : o.status}
+                        {o.status === "SUCCESS"
+                          ? "Завершено"
+                          : o.status === "REJECTED"
+                            ? "Отказ провайдера"
+                            : o.status === "UNKNOWN"
+                              ? "Требуется сверка"
+                              : o.status === "PENDING"
+                                ? "Выполняется"
+                                : "Не завершено"}
+                        {(o.status === "UNKNOWN" || o.status === "PENDING") && (
+                          <small> · резерв {credits(o.reserved)}</small>
+                        )}
                       </span>
-                      <b>−{credits(o.cost)}</b>
+                      <b>
+                        {o.status === "UNKNOWN" || o.status === "PENDING"
+                          ? "Сумма уточняется"
+                          : `−${credits(o.cost)}`}
+                      </b>
                     </div>
                   ))
                 ) : (
@@ -765,9 +780,13 @@ export default async function DashboardPage({
                   </p>
                 )}
                 <div className="usage-note">
-                  Сумма рассчитывается по фактическому использованию модели. До
-                  запуска резервируется не более {credits(AI_RESERVE_CREDITS)}{" "}
-                  кредитов.
+                  Сумма рассчитывается по фактическим токенам, включая
+                  кешированные, по фиксированному внутреннему тарифу. Один
+                  кредит равен одному микродоллару этого тарифа; он может
+                  отличаться от счёта провайдера. До запуска резервируется не
+                  более {credits(AI_RESERVE_CREDITS)} кредитов; неиспользованный
+                  остаток возвращается. При неопределённом ответе резерв
+                  удерживается до сверки.
                 </div>
               </div>
             </div>

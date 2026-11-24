@@ -224,7 +224,7 @@ export default async function AdminPage() {
                     <th>СТАТУС</th>
                     <th>КОМПАНИЯ</th>
                     <th>РЕЗЕРВ</th>
-                    <th>ФАКТИЧЕСКАЯ СТОИМОСТЬ</th>
+                    <th>СПИСАНО ПО ТАРИФУ</th>
                     <th>ДАТА</th>
                   </tr>
                 </thead>
@@ -243,7 +243,11 @@ export default async function AdminPage() {
                           ?.name ?? o.companyId}
                       </td>
                       <td>{fmt(o.reserved)}</td>
-                      <td>{fmt(o.cost)}</td>
+                      <td>
+                        {o.status === "UNKNOWN" || o.status === "PENDING"
+                          ? "Уточняется"
+                          : fmt(o.cost)}
+                      </td>
                       <td className="muted">{when(o.createdAt)}</td>
                     </tr>
                   ))}
@@ -252,7 +256,9 @@ export default async function AdminPage() {
             </div>
             <p className="small muted">
               AI вызовов в журнале: {ledger.calls.length}. Стоимость
-              рассчитывается по токенам ответа провайдера.
+              рассчитывается по фактическим токенам и внутреннему тарифу,
+              который может отличаться от счёта провайдера. Для UNKNOWN и
+              PENDING итоговая сумма ещё не известна.
             </p>
           </section>
           <footer className="footer">

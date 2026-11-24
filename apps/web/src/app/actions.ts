@@ -14,7 +14,11 @@ const rawValue = (form: FormData, name: string): string =>
 const number = (form: FormData, name: string): number => Number(form.get(name));
 function userMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
-  if (message.includes("OPENAI_API_KEY") || message.includes("AI недоступ"))
+  if (
+    message.includes("OPENAI_API_KEY") ||
+    message.includes("DEEPSEEK_API_KEY") ||
+    message.includes("AI недоступ")
+  )
     return "AI сейчас недоступен: сервис не настроен. Баланс и лимит не списаны.";
   return message || "Не удалось выполнить действие. Попробуйте ещё раз.";
 }

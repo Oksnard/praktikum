@@ -15,5 +15,12 @@
       "dependsOn": ["^typecheck"]
     }
   },
-  "globalPassThroughEnv": ["DATABASE_URL", "OPENAI_API_KEY", "PORT", "API_URL"]
+  "globalPassThroughEnv": [
+    "DATABASE_URL",
+    "AI_PROVIDER",
+    "OPENAI_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "PORT",
+    "API_URL"
+  ]
 }

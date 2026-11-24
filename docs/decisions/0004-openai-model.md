@@ -1,6 +1,7 @@
 # 0004. OpenAI gpt-4o-mini
 
 Статус: accepted
+Текущий статус: опциональный провайдер; default изменён на DeepSeek в [ADR0010](0010-deepseek-and-internal-tariff.md). OpenAI live запросы встретили исчерпанный баланс API.
 Дата:2026-11-24
 
 ## Контекст и решение

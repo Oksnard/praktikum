@@ -22,8 +22,8 @@ MVP multi-tenant SaaS. ТЗ: docs/requirements.md; план: docs/plan.md.
 ## Конвенции
 TypeScript strict, без any. Controller → Service → Repository.
 Server Components по умолчанию, интерактивные формы — Client.
-AI только через интерфейс: production OpenAI, fixtures только в тестах DI.
-Каждый AI ответ: Zod, evidence, audit usage, не более 2 retry.
+AI через интерфейс: DeepSeek по умолчанию, OpenAI опционально; fixtures только DI тестов.
+AI: OpenAI strict schema / DeepSeek JSON mode; Zod, evidence, usage audit, ≤2 retry.
 Деньги целые; списание usage, транзакции и идемпотентность.
 Tenant определяется из сессии, никогда из тела запроса.
 Все внешние провайдеры за интерфейсами; моки помечать Demo.
