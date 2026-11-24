@@ -123,4 +123,4 @@ export interface Dashboard {
   }[];
 }
 
-export const AI_RESERVE_CREDITS = 100000;
+export const AI_RESERVE_CREDITS = 200000;

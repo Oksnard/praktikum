@@ -1,0 +1,1 @@
+ALTER TABLE "AiCall" ADD COLUMN provider TEXT NOT NULL DEFAULT 'openai', ADD COLUMN "tariffVersion" TEXT NOT NULL DEFAULT 'openai-catalog-2026-11-24', ADD COLUMN "cachedPromptTokens" INTEGER NOT NULL DEFAULT 0;

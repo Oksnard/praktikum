@@ -1,3 +1,4 @@
+import { DEEPSEEK_CONFIGURATION, OPENAI_CONFIGURATION } from "../src/ai-config";
 import OpenAI from "openai";
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -102,4 +103,18 @@ test("provider rejections expose only safe status/code and keep uncertain outcom
     classifyProviderRejection(unsafeCode)?.code,
     "provider_rejected",
   );
+});
+
+test("DeepSeek internal peak tariff accounts for actual cache hits and rounds once per call", () => {
+  assert.equal(
+    usageCost(1_000_000, 1_000_000, 0, DEEPSEEK_CONFIGURATION),
+    1_500_000,
+  );
+  assert.equal(
+    usageCost(1_000_000, 0, 1_000_000, DEEPSEEK_CONFIGURATION),
+    6_000,
+  );
+  assert.equal(usageCost(1000, 200, 500, DEEPSEEK_CONFIGURATION), 393);
+  assert.equal(usageCost(1000, 0, 1000, OPENAI_CONFIGURATION), 75);
+  assert.throws(() => usageCost(1, 0, 2, DEEPSEEK_CONFIGURATION));
 });

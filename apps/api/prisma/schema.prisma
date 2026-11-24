@@ -79,6 +79,10 @@ model AiOperation {
  calls AiCall[]
 }
 model AiCall {
+ provider String @default("openai")
+ tariffVersion String @default("openai-catalog-2026-11-24")
+ cachedPromptTokens Int @default(0)
+ responseModel String?
  id String @id @default(uuid())
  companyId String
  operationId String

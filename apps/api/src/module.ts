@@ -4,7 +4,7 @@ import { Repository } from "./repository";
 import { AuthGuard } from "./auth";
 import { AppController } from "./controller";
 import { AppService } from "./service";
-import { AiProvider, AiService, OpenAiProvider } from "./ai";
+import { AiProvider, AiService, configuredAiProvider } from "./ai";
 import {
   MockNotificationSender,
   MockPaymentProvider,
@@ -17,7 +17,7 @@ import {
     Repository,
     AppService,
     AiService,
-    { provide: AiProvider, useClass: OpenAiProvider },
+    { provide: AiProvider, useFactory: configuredAiProvider },
     { provide: PaymentProvider, useClass: MockPaymentProvider },
     { provide: NotificationSender, useClass: MockNotificationSender },
     { provide: APP_GUARD, useClass: AuthGuard },

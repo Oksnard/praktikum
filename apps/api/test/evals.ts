@@ -2,12 +2,14 @@ import "reflect-metadata";
 import { readdir, readFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 import { EvaluationSchema, criteria } from "@praktikum/types";
-import { AiService, OpenAiProvider, validateGrounded } from "../src/ai";
+import { AiService, configuredAiProvider, validateGrounded } from "../src/ai";
 import { Repository } from "../src/repository";
 const live = process.argv.includes("--live");
 async function main() {
-  if (live && !process.env.OPENAI_API_KEY)
-    throw new Error("OPENAI_API_KEY required; no live calls made");
+  if (live && !configuredAiProvider().available())
+    throw new Error(
+      "Selected AI provider API key required; no live calls made",
+    );
   const db = new Repository();
   try {
     const user = live
@@ -26,7 +28,7 @@ async function main() {
       };
       const response = live
         ? (
-            await new AiService(db, new OpenAiProvider()).run(
+            await new AiService(db, configuredAiProvider()).run(
               user!,
               "evaluate",
               { source: f.material, criteria, answer: f.answer, fixture: file },
@@ -41,7 +43,7 @@ async function main() {
         `${file}: score ${parsed.score}`,
       );
       console.log(
-        `${file}: score=${parsed.score}, evidence=${parsed.evidence.length}, mode=${live ? "LIVE" : "authored snapshot"}`,
+        `${file}: score=${parsed.score}, evidence=${parsed.evidence.length}, mode=${live ? "LIVE" : "recorded snapshot"}`,
       );
     }
   } finally {

@@ -1,3 +1,4 @@
+import { OPENAI_CONFIGURATION } from "../src/ai-config";
 import { AiProvider, AiProviderRejection } from "../src/ai";
 import { Evaluation } from "@praktikum/types";
 export const source =
@@ -24,6 +25,7 @@ export function evaluation(score = 100): Evaluation {
   };
 }
 export class FixtureProvider extends AiProvider {
+  readonly configuration = OPENAI_CONFIGURATION;
   calls = 0;
   responses: unknown[] = [];
   fail = false;
