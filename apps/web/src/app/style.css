@@ -1392,3 +1392,98 @@ summary:after {
     display: block;
   }
 }
+
+/* Document upload form */
+.material-form {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px;
+}
+.material-form h3 {
+  margin: 0 0 2px;
+  color: var(--navy);
+  font-size: 17px;
+  letter-spacing: -0.3px;
+}
+.material-form label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: #53677a;
+  font-size: 13px;
+  font-weight: 600;
+}
+.material-form label input:not([type="file"]) {
+  margin: 0;
+  min-width: 0;
+  border-radius: 7px;
+  font-size: 14px;
+}
+.material-form label input::placeholder {
+  color: #9aa8b5;
+}
+.material-form .material-file-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #dfe7ec;
+  border-radius: 7px;
+  background: #f8fafb;
+  color: var(--muted);
+  font-size: 13px;
+}
+.material-form .material-file-input::file-selector-button {
+  margin: 0 12px 0 0;
+  padding: 8px 11px;
+  border: 1px solid #dfe7ec;
+  border-radius: 5px;
+  background: #fff;
+  color: var(--ink);
+  font: 600 12px Manrope, "DM Sans", sans-serif;
+  cursor: pointer;
+}
+.material-form .material-file-input::file-selector-button:hover {
+  border-color: #50c5cf;
+}
+.material-file-selected,
+.material-upload-hint,
+.material-upload-error {
+  margin: -4px 0 0;
+  overflow-wrap: anywhere;
+}
+.material-file-selected {
+  color: #167f73;
+  font-size: 12px;
+}
+.material-upload-hint {
+  max-width: 72ch;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.material-upload-error {
+  color: var(--red);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.material-upload-submit {
+  justify-self: start;
+  min-height: 42px;
+  padding-inline: 18px;
+  font-size: 13px;
+}
+.material-upload-submit:disabled {
+  cursor: wait;
+  opacity: 0.65;
+  transform: none;
+}
+@media (max-width: 600px) {
+  .material-form {
+    padding: 16px;
+  }
+  .material-upload-submit {
+    width: 100%;
+  }
+}

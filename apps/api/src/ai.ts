@@ -267,7 +267,7 @@ export class AiService {
           provider: this.provider.configuration.provider,
           model: this.provider.configuration.model,
           tariffVersion: this.provider.configuration.tariffVersion,
-          version: 2,
+          version: 3,
         }),
       );
     const existing = await this.db.aiOperation.findUnique({

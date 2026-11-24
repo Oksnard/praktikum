@@ -1,0 +1,16 @@
+[Unit]
+Description=Praktikum PostgreSQL backup
+
+[Service]
+Type=oneshot
+User=__RUN_USER__
+Group=__RUN_USER__
+EnvironmentFile=/etc/praktikum/production.env
+Environment=BACKUP_DIR=__APP_ROOT__/data/backups
+ExecStart=__NODE_BIN__ __APP_ROOT__/current/deploy/backup.mjs
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=__APP_ROOT__/data

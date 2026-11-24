@@ -1,0 +1,9 @@
+# Preserve original document/image bytes and avoid text diff/merge of binary assets.
+*.pdf binary
+*.doc binary
+*.docx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+apps/api/test/document-fixtures/russian-cp1251.txt -text
+apps/api/test/document-fixtures/russian-utf16.txt binary

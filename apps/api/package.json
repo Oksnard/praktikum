@@ -7,14 +7,14 @@
     "build": "tsc",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/unit.test.ts"
+    "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.9",
     "@nestjs/core": "^11.1.9",
     "@nestjs/platform-express": "^11.1.9",
-    "@prisma/client": "6.19.0",
     "@praktikum/types": "workspace:*",
+    "@prisma/client": "6.19.0",
     "openai": "^6.9.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
@@ -24,6 +24,7 @@
   "devDependencies": {
     "@nestjs/testing": "^11.1.9",
     "@types/express": "^5.0.5",
+    "@types/multer": "^2.3.0",
     "prisma": "6.19.0"
   }
 }

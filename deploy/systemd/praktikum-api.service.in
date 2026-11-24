@@ -1,0 +1,26 @@
+[Unit]
+Description=Praktikum Nest API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__RUN_USER__
+Group=__RUN_USER__
+WorkingDirectory=__APP_ROOT__/current
+Environment=NODE_ENV=production
+Environment=PORT=__API_PORT__
+EnvironmentFile=/etc/praktikum/production.env
+ExecStart=__NODE_BIN__ apps/api/dist/src/main.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=60
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=__APP_ROOT__/data
+
+[Install]
+WantedBy=multi-user.target

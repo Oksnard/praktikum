@@ -15,6 +15,7 @@ MVP multi-tenant SaaS. ТЗ: docs/requirements.md; план: docs/plan.md.
 - pnpm typecheck
 - pnpm test
 - pnpm test:e2e
+- pnpm test:browser
 - pnpm evals
 - pnpm db:migrate
 - pnpm db:seed
@@ -33,3 +34,4 @@ Tenant определяется из сессии, никогда из тела 
 ## Приёмка
 Условия и фактические результаты: docs/acceptance.md.
 После этапа проверки и запись в docs/development-log.md.
+Файлы: docs/material-files.md; обучение: docs/onboarding.md; deploy: docs/deployment.md.

@@ -6,10 +6,11 @@ export const criteria = [
   { id: "completeness", label: "Полнота действий", max: 30 },
   { id: "application", label: "Применение к ситуации", max: 30 },
 ];
+const requiredText = z.string().trim().min(1);
 export const AssignmentSchema = z
   .object({
-    summary: z.string(),
-    question: z.string(),
+    summary: requiredText,
+    question: requiredText,
     evidence: z.array(z.string()).min(1),
   })
   .strict();
@@ -21,16 +22,16 @@ export const EvaluationSchema = z
         .object({
           id: z.string(),
           score: z.number().int().min(0).max(40),
-          explanation: z.string(),
+          explanation: requiredText,
         })
         .strict(),
     ),
     evidence: z.array(z.string()),
     unsupported_claims: z.array(z.string()),
     gaps: z.array(z.string()),
-    feedback: z.string(),
-    recommendations: z.array(z.string()).min(1),
-    personal_material: z.string(),
+    feedback: requiredText,
+    recommendations: z.array(requiredText).min(1),
+    personal_material: requiredText,
   })
   .strict();
 export type AssignmentContent = z.infer<typeof AssignmentSchema>;
@@ -78,6 +79,9 @@ export interface UserView {
   spent: number;
 }
 export interface MaterialView {
+  attachmentName?: string | null;
+  attachmentMime?: string | null;
+  attachmentSize?: number | null;
   id: string;
   title: string;
   text: string;
@@ -124,3 +128,37 @@ export interface Dashboard {
 }
 
 export const AI_RESERVE_CREDITS = 200000;
+
+export interface AdminLedger {
+  companies: { id: string; name: string; balance: number }[];
+  transactions: TransactionView[];
+  operations: {
+    id: string;
+    status: string;
+    cost: number;
+    reserved: number;
+    createdAt: string;
+    companyId: string;
+  }[];
+  calls: {
+    id: string;
+    model: string;
+    promptTokens: number;
+    completionTokens: number;
+    cost: number;
+    latencyMs: number;
+    validationStatus: string;
+    createdAt: string;
+    companyId: string;
+  }[];
+  totals: {
+    companies: number;
+    transactions: number;
+    operations: number;
+    calls: number;
+    knownAiCost: number;
+    unresolvedOperations: number;
+    unresolvedReserved: number;
+  };
+  windows: { transactions: number; recentOperations: number; calls: number };
+}

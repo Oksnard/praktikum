@@ -1,0 +1,25 @@
+[Unit]
+Description=Praktikum Next web
+After=network-online.target praktikum-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__RUN_USER__
+Group=__RUN_USER__
+WorkingDirectory=__APP_ROOT__/current
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/praktikum/production.env
+ExecStart=__NODE_BIN__ apps/web/node_modules/next/dist/bin/next start apps/web --hostname 127.0.0.1 --port __WEB_PORT__
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=__APP_ROOT__/data __APP_ROOT__/current/apps/web/.next
+
+[Install]
+WantedBy=multi-user.target

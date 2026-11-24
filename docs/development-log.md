@@ -45,3 +45,29 @@
 
 ## Денежная точность
 Стоимость вычисляется через целочисленный числитель `(promptTokens*15 + completionTokens*60 +99)/100` с floor, без сложения дробных тарифов. Unit на миллион входных/выходных токенов подтверждает750000 microUSD. Повторные4 unit и API typecheck PASS. API build и git diff --check PASS; AGENTS35 строк.
+
+## 2026-11-24 — HTTPS, документы, обучение и повторная приёмка
+
+- Заказчик выбрал временный Mac URL вместо постоянного VPS. Созданы отдельные private review БД/роль и random credentials, compiled Nest/Next production на loopback3311/3300; Cloudflared→auth gateway3390. Публичный HTTPS gate401/authorized200 проверен, cookieSecure/HttpOnly/Lax. Команды/перезапуск/ограничения сна описаны вdeployment.md; VPS templates не выдаются за установленный сервер.
+- Shared contracts переведены вcompiled CommonJSdist, проверен обычныйNode22. Production default registration/topup deny, review flags отдельно. Сначала регистрация закрыта, после уточнения заказчика включена заgate и заново проверена настоящим HTTPSPlaywright: emptytenant/owner/0balance/login/logout/foreignfile404; тестtenant удалён,0AIcalls.
+- Добавлены private FileStorage и реальные DOCX/DOC/PDF/TXT parsers, шестая миграция. Fresh review выявил внешнийOrigin/internalNext mismatch, необходимостьSIGKILL processgroup и отказаoverlongPDFбезpartialacceptance; всё исправлено и покрыто. Подпроцесс ограничен временем/output/RSS, sandboxlimitations документированы.
+- driver.js1.14.0 onboarding: firstvisit peruser/browser, role-aware sections, skip/Escape/replay/mobile/reducedmotion; fresh source review APPROVE.
+- Audit исправил blankAIstrings, exact global financial aggregates+window labels+allunresolved и manualreconciliationroundcost. PairedDB+uploads+hashmanifest backup/restore проверен через authenticateddownload, повторён независимо вдвух временных БД. Никакая рабочая БД не перезаписана.
+- Полный Playwright suite потребовал исправления селекторов admin/company/logout и accessible dialog name; после двух неудачных acceptance итераций эскалация кAstra. Итог5/5PASS1minбезretry, mobileall5steps fullyvisible390×844. Productionapp ради тестов не менялся.
+- Реальный publicPlaywright DOCX→DeepSeek→employee→manager:PASS,2calls891internalcredits,score100/2quotes,originalbytehash/cache0/tenant404. Publicreadonlysmoke3/3PASS. ЛокальныеAIfixtures толькоDI, публичныеAIcalls настоящие.
+- По уточнению изоляции проведён свежий source review и добавлены HTTPregressions: emptyBworkspace/ownteam, recursiveprivatefieldabsence,foreignlimit403/noDBchange,companyIdinjection400,nopeeremployeeattempts/operations. Свежий root HTTPe2ePASS после reviewerPASS, включая обе reserve/limitrace очередности.
+- После публикации root повторил22unit/focused,lint,typecheck,offline5evals,backuprestore:PASS. Последняя app productionbuild3tasks12.508s выполнена перед запуском; последующие изменения касались тестов/docs/envpassthrough, build поверх работающегоNext не запускался.
+- При ENOSPC безопасно очищены неактивныеnpmexec/pnpmmetadata/Xcode/browsercache:220→4404МиБ свободно, активныеruntime/DB/source/authstorage/Playwrightbrowser сохранены. Docker отсутствует; не заявляем удаление контейнеров.
+- Обновлены ТЗ-дополнения,README/план/приёмка/архитектура/API/ADR, file/onboarding/deploy/reconciliation/browser/cleanup runbooks иprojectaudit. По новому запросу готовится публичныйGitHub; передpush проверяется вся история и stagedfiles на секреты.
+
+## 2026-11-24 — Ручная проверка заказчиком и публикация исходников
+
+- По скриншоту исправлена форма upload: existing form-panel tokens, stacked labels/native file picker/selected name/error/pending, inputsdisabled+aria-busy. Mobbin дважды отверг search с INVALID_ARGUMENT; поиск остановлен, UI исправлен по существующей системе стилей без выдуманных референсов.
+- Найдены dangling navigation: owner/manager learning и manager team. Ссылки и названия приведены к реально доступным разделам. Playwright теперь кликает все видимые sidebar links всех трёх ролей. Полный набор5/5PASS1.2min; новая финальная проверка после header polish фиксируется в acceptance.
+- Public UI test выявил мобильное перекрытие floating replay/upload submit; replay перенесён в sticky header, обе viewport geometry проверяются. Current-host upload/registration PASS,0AI, exact fixture cleanup подтверждён.
+- После длительной паузы attached sessions остановились. API/Next/gate/tunnel запущены через detached POSIX sessions с приватными logs/PID file; URL сменился на текущий вdeployment.md, Host/Origin/browser/access синхронизированы. Launchd/автозапуск не установлен.
+- Последний production build6.206s: shared/API cache, Next пересобран. Rootfull lint/typecheck повторены. При staged diff проверке PDF xref whitespace корректно сохранены; binary attributes запрещают text diff/merge/newline conversion, содержимое fixtures не менялось.
+- Подготовлен настоящий Word-регламент1942 исходных символа; render/PNG review1pagePASS, actual app parser1929символовPASS. Добавлены Word/TXT и testing-walkthrough: owner→upload/generate→employee answer→results; без готового ответа.
+- Перед публичным GitHub выполнена проверка working tree, staged blobs и всей Git-истории по реальным private credential values и key patterns; совпадений не найдено, секреты не выводились. Remote Oksnard/praktikum создан публичным по последнему уточнению заказчика. Push подтверждается отдельно после завершения приёмки.
+
+- Финальная новая сборка: localPlaywright5/5PASS1.1min,remote3/3PASS14.3s,publicregistration/upload UI PASSнаактуальномhost;0AI. Новый запрос заказчика — содержательная проверка AI-отчёта по трём контролируемым ответам; проводится отдельно, без чтения пользовательских tenant данных.

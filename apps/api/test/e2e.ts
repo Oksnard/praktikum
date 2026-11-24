@@ -1,3 +1,4 @@
+import { AppService } from "../src/service";
 import { Prisma } from "@prisma/client";
 import "reflect-metadata";
 import assert from "node:assert/strict";
@@ -7,6 +8,7 @@ import { INestApplication } from "@nestjs/common";
 import { AppModule } from "../src/module";
 import { AiProvider, AiProviderRejection, AiService, RESERVE } from "../src/ai";
 import { Repository } from "../src/repository";
+import { digest } from "../src/auth";
 import { FixtureProvider, evaluation, source } from "./fixtures";
 const provider = new FixtureProvider();
 let app: INestApplication;
@@ -25,8 +27,65 @@ async function req(path: string, token = "", body?: unknown, method = "POST") {
     data: (await r.json()) as Record<string, unknown>,
   };
 }
+function deferred() {
+  let resolve: () => void = () => undefined;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+async function bounded<T>(
+  promise: Promise<T>,
+  description: string,
+): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error(`Timed out: ${description}`)),
+          5000,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
 async function main() {
+  let sessionReadGate:
+    | {
+        hash: string;
+        entered: ReturnType<typeof deferred>;
+        release: ReturnType<typeof deferred>;
+      }
+    | undefined;
+  // This DI wrapper keeps real PostgreSQL persistence; it only pauses one observed auth snapshot.
+  const realDatabase = new Repository();
+  const coordinatedDatabase = new Proxy(realDatabase, {
+    get(target, key) {
+      if (key !== "session") return Reflect.get(target, key);
+      return new Proxy(target.session, {
+        get(delegate, method) {
+          if (method !== "findUnique") return Reflect.get(delegate, method);
+          return async (args: Prisma.SessionFindUniqueArgs) => {
+            const snapshot = await delegate.findUnique(args);
+            if (sessionReadGate && args.where.id === sessionReadGate.hash) {
+              const gate = sessionReadGate;
+              sessionReadGate = undefined;
+              gate.entered.resolve();
+              await gate.release.promise;
+            }
+            return snapshot;
+          };
+        },
+      });
+    },
+  });
   const module = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(Repository)
+    .useValue(coordinatedDatabase)
     .overrideProvider(AiProvider)
     .useValue(provider)
     .compile();
@@ -95,6 +154,45 @@ async function main() {
       403,
     );
     assert.equal((await req("/admin/ledger", owner)).status, 403);
+    const oldPolicy = {
+      node: process.env.NODE_ENV,
+      registration: process.env.ALLOW_PUBLIC_REGISTRATION,
+      topups: process.env.ALLOW_MOCK_TOPUPS,
+    };
+    try {
+      process.env.NODE_ENV = "production";
+      delete process.env.ALLOW_PUBLIC_REGISTRATION;
+      delete process.env.ALLOW_MOCK_TOPUPS;
+      assert.equal(
+        (
+          await req("/auth/register", "", {
+            email: email("denied"),
+            password: "LongPassword123!",
+            name: "Denied",
+            companyName: "Denied",
+          })
+        ).status,
+        403,
+      );
+      assert.equal(
+        (
+          await req("/credits/topup", owner, {
+            amount: 1000000,
+            key: randomUUID(),
+          })
+        ).status,
+        403,
+      );
+    } finally {
+      for (const [key, value] of [
+        ["NODE_ENV", oldPolicy.node],
+        ["ALLOW_PUBLIC_REGISTRATION", oldPolicy.registration],
+        ["ALLOW_MOCK_TOPUPS", oldPolicy.topups],
+      ]) {
+        if (value === undefined) delete process.env[key!];
+        else process.env[key!] = value;
+      }
+    }
     const key = randomUUID();
     const tops = await Promise.all([
       req("/credits/topup", owner, { amount: 1000000, key }),
@@ -167,6 +265,117 @@ async function main() {
     assert.equal((own.data.transactions as unknown[]).length, 0);
     const otherDash = await req("/dashboard", otherToken);
     assert.equal((otherDash.data.materials as unknown[]).length, 0);
+    // Another company has its own workspace, not merely a hidden document list.
+    assert.equal((otherDash.data.company as { id: string }).id, bId);
+    for (const collection of [
+      "assignments",
+      "attempts",
+      "transactions",
+      "operations",
+    ])
+      assert.deepEqual(
+        otherDash.data[collection],
+        [],
+        `foreign ${collection} must not appear`,
+      );
+    const otherTeam = otherDash.data.users as {
+      id: string;
+      companyId: string;
+    }[];
+    assert.equal(otherTeam.length, 1);
+    assert.ok(otherTeam.every((user) => user.companyId === bId));
+    assert.ok(!otherTeam.some((user) => user.id === employeeId));
+    const assertNoPrivateFields = (value: unknown): void => {
+      if (Array.isArray(value)) {
+        value.forEach(assertNoPrivateFields);
+      } else if (value !== null && typeof value === "object") {
+        for (const [key, nested] of Object.entries(value)) {
+          assert.ok(
+            !["passwordHash", "sessions", "token", "attachmentKey"].includes(
+              key,
+            ),
+            `private field ${key} must not leave dashboard`,
+          );
+          assertNoPrivateFields(nested);
+        }
+      }
+    };
+    for (const dashboard of [
+      report,
+      own,
+      otherDash,
+      await req("/dashboard", owner),
+    ])
+      assertNoPrivateFields(dashboard.data);
+    // A foreign owner cannot mutate a known employee id or smuggle a tenant in a DTO.
+    const protectedUserBefore = await db.user.findUniqueOrThrow({
+      where: { id: employeeId },
+      select: { limit: true, spent: true, companyId: true },
+    });
+    const callsBeforeForeignMutation = provider.calls;
+    assert.equal(
+      (
+        await req(
+          `/users/${employeeId}/limit`,
+          otherToken,
+          { limit: 0 },
+          "PATCH",
+        )
+      ).status,
+      403,
+    );
+    assert.deepEqual(
+      await db.user.findUniqueOrThrow({
+        where: { id: employeeId },
+        select: { limit: true, spent: true, companyId: true },
+      }),
+      protectedUserBefore,
+    );
+    assert.equal(
+      (
+        await req("/materials", otherToken, {
+          title: "Tenant override denied",
+          text: source,
+          companyId,
+        })
+      ).status,
+      400,
+    );
+    assert.equal(provider.calls, callsBeforeForeignMutation);
+    assert.equal(
+      (await db.company.findUniqueOrThrow({ where: { id: bId } })).balance,
+      0,
+    );
+    // Even within one company an employee cannot see another employee's result or operations.
+    const peerResult = await req("/users", owner, {
+      email: email("peer"),
+      password: "LongPassword123!",
+      name: "Другой сотрудник",
+      role: "EMPLOYEE",
+      limit: 1000000,
+    });
+    assert.equal(peerResult.status, 201);
+    const peerToken = (
+      await req("/auth/login", "", {
+        email: email("peer"),
+        password: "LongPassword123!",
+      })
+    ).data.token as string;
+    const peerDashboard = await req("/dashboard", peerToken);
+    for (const collection of [
+      "attempts",
+      "operations",
+      "users",
+      "transactions",
+    ])
+      assert.deepEqual(
+        peerDashboard.data[collection],
+        [],
+        `peer employee ${collection} is private`,
+      );
+    assert.equal((peerDashboard.data.materials as unknown[]).length, 1);
+    assert.equal((peerDashboard.data.assignments as unknown[]).length, 1);
+    assertNoPrivateFields(peerDashboard.data);
     const calls = await db.aiCall.findMany({ where: { companyId } });
     assert.equal(calls.length, 4);
     assert.deepEqual(calls.map((x) => x.validationStatus).sort(), [
@@ -359,6 +568,229 @@ async function main() {
         .balance,
       1000000 - 540,
     );
+    // Force both linearizations of owner limit lowering versus employee reserve, twice, with no timing sleeps.
+    for (let round = 0; round < 2; round++) {
+      let beforeUser = await db.user.findUniqueOrThrow({
+        where: { id: employeeId },
+      });
+      assert.equal(
+        (
+          await req(
+            `/users/${employeeId}/limit`,
+            owner,
+            { limit: beforeUser.spent + RESERVE + 1000 },
+            "PATCH",
+          )
+        ).status,
+        200,
+      );
+      const beforeBalance = (
+        await db.company.findUniqueOrThrow({ where: { id: companyId } })
+      ).balance;
+      const beforeTransactions = await db.creditTransaction.count({
+        where: { companyId },
+      });
+      const beforeOperations = await db.aiOperation.count({
+        where: { companyId },
+      });
+      const beforeCalls: number = provider.calls;
+      const entered = deferred(),
+        release = deferred();
+      const originalComplete = provider.complete;
+      provider.complete = async (
+        ...args: Parameters<FixtureProvider["complete"]>
+      ) => {
+        const result = await originalComplete.call(provider, ...args);
+        entered.resolve();
+        await release.promise;
+        return result;
+      };
+      const reservedRequest = req(`/assignments/${aid}/attempts`, employee, {
+        answer: `Ответ для гонки лимита: резерв выигрывает, раунд ${round}.`,
+      });
+      try {
+        await bounded(entered.promise, "employee reserve committed");
+        assert.equal(
+          (await db.user.findUniqueOrThrow({ where: { id: employeeId } }))
+            .spent,
+          beforeUser.spent + RESERVE,
+        );
+        assert.equal(
+          (await db.company.findUniqueOrThrow({ where: { id: companyId } }))
+            .balance,
+          beforeBalance - RESERVE,
+        );
+        assert.equal(
+          (
+            await bounded(
+              req(
+                `/users/${employeeId}/limit`,
+                owner,
+                { limit: beforeUser.spent },
+                "PATCH",
+              ),
+              "owner concurrent limit response",
+            )
+          ).status,
+          403,
+        );
+      } finally {
+        release.resolve();
+        provider.complete = originalComplete;
+        await bounded(reservedRequest, "drain reserved request");
+      }
+      assert.equal(
+        (await bounded(reservedRequest, "reserved answer settlement")).status,
+        201,
+      );
+      const afterReserve = await db.user.findUniqueOrThrow({
+        where: { id: employeeId },
+      });
+      assert.equal(afterReserve.spent, beforeUser.spent + 270);
+      assert.ok(afterReserve.spent <= afterReserve.limit);
+      assert.equal(
+        (await db.company.findUniqueOrThrow({ where: { id: companyId } }))
+          .balance,
+        beforeBalance - 270,
+      );
+      assert.equal(
+        await db.creditTransaction.count({ where: { companyId } }),
+        beforeTransactions + 2,
+      );
+      assert.equal(
+        await db.aiOperation.count({ where: { companyId } }),
+        beforeOperations + 1,
+      );
+      assert.equal(provider.calls, beforeCalls + 1);
+
+      beforeUser = afterReserve;
+      assert.equal(
+        (
+          await req(
+            `/users/${employeeId}/limit`,
+            owner,
+            { limit: beforeUser.spent + RESERVE + 1000 },
+            "PATCH",
+          )
+        ).status,
+        200,
+      );
+      const unchangedBalance = (
+        await db.company.findUniqueOrThrow({ where: { id: companyId } })
+      ).balance;
+      const unchangedTransactions = await db.creditTransaction.count({
+        where: { companyId },
+      });
+      const unchangedOperations = await db.aiOperation.count({
+        where: { companyId },
+      });
+      const unchangedCalls: number = provider.calls;
+      const snapshotEntered = deferred(),
+        snapshotRelease = deferred();
+      sessionReadGate = {
+        hash: digest(employee),
+        entered: snapshotEntered,
+        release: snapshotRelease,
+      };
+      const limitedRequest = req(`/assignments/${aid}/attempts`, employee, {
+        answer: `Ответ для гонки лимита: снижение выигрывает, раунд ${round}.`,
+      });
+      try {
+        await bounded(snapshotEntered.promise, "employee captured old limit");
+        assert.equal(
+          (
+            await bounded(
+              req(
+                `/users/${employeeId}/limit`,
+                owner,
+                { limit: beforeUser.spent },
+                "PATCH",
+              ),
+              "owner concurrent limit response",
+            )
+          ).status,
+          200,
+        );
+      } finally {
+        snapshotRelease.resolve();
+        sessionReadGate = undefined;
+        await bounded(limitedRequest, "drain limited request");
+      }
+      assert.equal(
+        (await bounded(limitedRequest, "stale reserve rollback")).status,
+        422,
+      );
+      const afterLimit = await db.user.findUniqueOrThrow({
+        where: { id: employeeId },
+      });
+      assert.equal(afterLimit.limit, beforeUser.spent);
+      assert.equal(afterLimit.spent, beforeUser.spent);
+      assert.ok(afterLimit.spent <= afterLimit.limit);
+      assert.equal(
+        (await db.company.findUniqueOrThrow({ where: { id: companyId } }))
+          .balance,
+        unchangedBalance,
+      );
+      assert.equal(
+        await db.creditTransaction.count({ where: { companyId } }),
+        unchangedTransactions,
+      );
+      assert.equal(
+        await db.aiOperation.count({ where: { companyId } }),
+        unchangedOperations,
+      );
+      assert.equal(provider.calls, unchangedCalls);
+    }
+    assert.equal(
+      (
+        await req(
+          `/users/${employeeId}/limit`,
+          owner,
+          { limit: 1000000 },
+          "PATCH",
+        )
+      ).status,
+      200,
+    );
+    // Global admin counts are not truncated; an old unresolved operation remains visible past the recent window.
+    const txBeforeWindow = await db.creditTransaction.count();
+    const opBeforeWindow = await db.aiOperation.count();
+    const oldUnresolved = await db.aiOperation.create({
+      data: {
+        companyId,
+        userId: employeeId,
+        requestHash: randomUUID(),
+        kind: "WINDOW_TEST",
+        status: "UNKNOWN",
+        reserved: 0,
+        createdAt: new Date("2000-01-01"),
+      },
+    });
+    await db.aiOperation.createMany({
+      data: Array.from({ length: 105 }, () => ({
+        companyId,
+        userId: employeeId,
+        requestHash: randomUUID(),
+        kind: "WINDOW_TEST",
+        status: "SUCCESS",
+        reserved: 0,
+      })),
+    });
+    await db.creditTransaction.createMany({
+      data: Array.from({ length: 205 }, () => ({
+        companyId,
+        userId: employeeId,
+        key: randomUUID(),
+        kind: "WINDOW_TEST",
+        amount: 0,
+      })),
+    });
+    const overview = await app.get(AppService).ledger();
+    assert.equal(overview.totals.transactions, txBeforeWindow + 205);
+    assert.equal(overview.totals.operations, opBeforeWindow + 106);
+    assert.equal(overview.transactions.length, 200);
+    assert.ok(overview.operations.some((o) => o.id === oldUnresolved.id));
+    assert.ok(overview.totals.operations > overview.operations.length);
     // Unknown outcome conservatively holds reserve and blocks repeat.
     await db.company.update({
       where: { id: companyId },
@@ -439,7 +871,7 @@ async function main() {
     assert.equal((await req("/auth/logout", employee, {})).status, 201);
     assert.equal((await req("/me", employee)).status, 401);
     console.log(
-      "E2E PASS: register/company → roles → concurrent Demo topup → material → structured AI assignment → answer/retry/evidence → personal result → usage settlement → manager report; tenant/idempotency/concurrency/limit/unknown/logout assertions passed.",
+      "E2E PASS: register/company → roles → concurrent Demo topup → material → structured AI assignment → answer/retry/evidence → personal result → usage settlement → manager report; tenant/idempotency/concurrency/limit/reserve-vs-limit-both-orders/unknown/logout assertions passed.",
     );
   } finally {
     for (const id of [companyId, bId].filter(Boolean)) {

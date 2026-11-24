@@ -1,3 +1,4 @@
+import { productionPolicy } from "../src/production-policy";
 import { DEEPSEEK_CONFIGURATION, OPENAI_CONFIGURATION } from "../src/ai-config";
 import OpenAI from "openai";
 import { test } from "node:test";
@@ -117,4 +118,46 @@ test("DeepSeek internal peak tariff accounts for actual cache hits and rounds on
   assert.equal(usageCost(1000, 200, 500, DEEPSEEK_CONFIGURATION), 393);
   assert.equal(usageCost(1000, 0, 1000, OPENAI_CONFIGURATION), 75);
   assert.throws(() => usageCost(1, 0, 2, DEEPSEEK_CONFIGURATION));
+});
+
+test("public deployment denies signup and mock money by default without changing local demo", () => {
+  assert.deepEqual(productionPolicy({ NODE_ENV: "production" }), {
+    allowRegistration: false,
+    allowMockTopUps: false,
+  });
+  assert.deepEqual(productionPolicy({ NODE_ENV: "development" }), {
+    allowRegistration: true,
+    allowMockTopUps: true,
+  });
+  assert.equal(
+    productionPolicy({
+      NODE_ENV: "production",
+      ALLOW_PUBLIC_REGISTRATION: "true",
+    }).allowRegistration,
+    true,
+  );
+  assert.equal(
+    productionPolicy({ NODE_ENV: "development", ALLOW_MOCK_TOPUPS: "false" })
+      .allowMockTopUps,
+    false,
+  );
+});
+
+test("mandatory AI learning and feedback strings cannot be blank or whitespace", () => {
+  assert.ok(
+    !validateGrounded(
+      "generate",
+      { summary: "", question: " ", evidence: [source.split(". ")[0] + "."] },
+      source,
+      criteria,
+    ),
+  );
+  const blank = {
+    ...evaluation(),
+    feedback: " ",
+    personal_material: "",
+    recommendations: [""],
+    criteria: evaluation().criteria.map((c) => ({ ...c, explanation: "" })),
+  };
+  assert.ok(!validateGrounded("evaluate", blank, source, criteria));
 });

@@ -1,51 +1,70 @@
-# Условия приёмки и результаты
+# Условия приёмки и фактические результаты
 
-Дата:2026-11-24. PostgreSQL14, Node25.9, pnpm10.11; loopback web3000/api3011.
+Дата:2026-11-24. PostgreSQL14, Node25.9/pnpm10.11; compiled API отдельно проверен наNode22.23.5. Шесть Prisma миграций. Текущая HTTPS review версия использует production Nest3311/Next3300/gateway3390, только loopback; отдельная БД `praktikum_review`. Первоначальный local MVP и его история сохранены отдельно.
 
-| Проверка | Факт |
+## Проверки кода и данных
+
+| Проверка | Фактический результат |
 |---|---|
-| pnpm install | PASS, lockfile есть; Prisma CLI/client6.19 |
-| pnpm db:generate / db:migrate / db:seed | PASS, 5 миграций, две demo компании и4 роли |
-| pnpm lint | PASS, реальный ESLint recommended TypeScript |
-| pnpm typecheck | PASS API/shared/Next |
-| pnpm test | PASS6 unit tests |
-| pnpm test:e2e | PASS HTTP+PostgreSQL, AI DI fixtures |
-| pnpm evals | PASS5 записанных реальных DeepSeek ответов |
-| pnpm evals --live | PASS5 DeepSeek cases; повтор использовал cache без новых вызовов |
-| OpenAI live | BLOCKED:429 credit_balance_exhausted; активный провайдер изменён по запросу заказчика |
-| pnpm dev | PASS: Nest3011, Next3000 Ready |
-| pnpm build | PASS после DeepSeek: API и Next, 2 задачи без cache, 5.7 с |
-| Browser UI | PASS: вход/выход, роли, материал, отказ AI, Demo пополнение, ширины 762 и 390 px |
-| Независимый Sol review backend | APPROVE: JSON null, ABA/revision, provider rejection, cache usage и аудит моделей проверены |
-| Независимый Sol review финального frontend | APPROVE; проверены auth, ошибки форм, критерии, личный бюджет, proxy и mobile logout |
+| install/generate/migrate |PASS, lockfile; Prisma6.19;6 committed migrations применены|
+| pnpm lint |PASS после финальных изменений|
+| pnpm typecheck |PASS API/shared/Next|
+| pnpm test |**22/22 PASS**: API19 (core8+documents11), BFF Origin1, gateway2|
+| HTTP+PostgreSQL e2e |PASS; полный suite повторён root после свежих isolation assertions|
+| pnpm evals |**5/5 PASS**, записанные реальные DeepSeek ответы, без новых API вызовов|
+| pnpm build |PASS shared/API/Next; последняя сборка6.206s (shared/API cache, Next пересобран); она обслуживает текущий review|
+| Compiled Node22 smoke |PASS health200 и production default registration403, без tsx runtime|
+| Backup/restore |PASS, две отдельные временные БД, paired dump+files+hash manifest, настоящий authenticated download после restore|
+| git diff --check |PASS; секреты/runtime исключены из публикации|
 
-## Что проверено автоматически
-HTTP e2e: регистрация новой компании → владелец создаёт сотрудника/руководителя → конкурентное Demo пополнение зачисляется один раз → материал → AI structured задание через FixtureProvider → развёрнутый ответ → null/выдуманная цитата/валидный ответ, все3 usage списаны → персональный материал → менеджер видит результат. Повтор SUCCESS не вызывает provider и не списывает повторно. Есть403 ролей,404 cross-tenant material/assignment, скопы dashboard, исчерпание employee лимита, конкурентный баланс (один победитель), exhausted retry charge и UNKNOWN hold/no replay. E2E создаёт и удаляет только собственные tenants.
+Локальные evidence logs в игнорируемом `.runtime`: `final-unit.log`, `final-http-e2e.log`, `final-lint.log`, `final-typecheck.log`, `final-evals.log`, `final-backup-roundtrip.log`, `final-header-build.log`. Они не заменяют воспроизводимые исходники тестов.
 
-Unit: usage pricing/ceil/cache, scrypt verify, strict schema, exact nonempty evidence, criteria set/max/sum, безопасная классификация отказов. Дополнительные HTTP regression checks:429→возврат резерва→конкурентный повтор, INVALID→429→успех с накопленной стоимостью, ABA stale revision, UNKNOWN без replay. Evals: полный/частичный/неверный/off-topic/копия с заранее заданными диапазонами.
+HTTP e2e проверяет регистрацию, роли/сессии/logout, owner team/limits, concurrent idempotent Demo topup, material→assignment→attempt→manager report, retry null/ложной цитаты, стоимость всех платных ответов, cache/replay, exhausted retry, известный429/refund/retry, INVALID→429→успех с накопленной стоимостью, persistent revision/ABA, конкурентный баланс и UNKNOWN hold/no replay. Добавлены детерминированные реальные PG гонки reserve против изменения employee limit: обе очередности повторены дважды, без sleeps; проигрыш полностью откатывает budget/ledger/operation и не вызывает провайдера.
 
-Dispatcher дополнительно проверил реально запущенный production API: no-key generate →503, company balance и operations count неизменны; SUPER_ADMIN ledger →200 (две компании), EMPLOYEE ledger →403, employee dashboard не содержит users/transactions. Это проверка production provider configuration, не DI fixture.
+Изоляционные регрессии проверяют компанию Б: собственное имя и команда, отсутствие чужих материалов/заданий/результатов/операций/финансов; изменение чужого лимита403 без изменений БД; внедрение companyId в DTO400 без расходов; второй сотрудник не видит чужих попыток/операций/команды/ledger. Рекурсивно проверено отсутствие passwordHash/session/token/attachmentKey, в том числе во вложенных данных. У каждого tenant собственный кабинет; платформенный SUPER_ADMIN имеет отдельно разрешённый финансовый аудит, а tenant routes ему не доступны.
 
-Браузерная приёмка через локальный Next: вход OWNER/EMPLOYEE/SUPER_ADMIN, неверный пароль с сообщением внутри формы, выход, перенаправление неавторизованного пользователя из /admin, недоступность админки сотруднику, журнал платформы. Владелец добавил материал «Передача сложного обращения», полный текст сохранился и доступен сотруднику. Генерация без ключа показывает понятный отказ внутри кабинета. Demo пополнение увеличило баланс Альфы с 1000000 до 1100000, создало помеченную Demo запись и очистило прежнее сообщение об ошибке. Проверены document.scrollWidth=innerWidth на 762 и 390 px; на мобильной ширине доступен выход. [Снимок кабинета](screenshots/dashboard.jpg).
+Document tests: реальные кириллические DOCX/DOC/PDF/TXT(UTF8/CP1251/UTF16), MIME/signature spoof, binary TXT, размер/длина, zip bomb/DTD/entity/path, повреждённый/зашифрованный/скан PDF, multipart413,401/403, foreign tenant404, byte-for-byte download, DB-error cleanup, private path. Регрессии subprocess tree hard deadline/RSS и PDF overlimit без усечения. Document HTTP focused test использует настоящий Nest/AuthGuard/parser/storage и in-memory DB adapter; Playwright отдельно использует PostgreSQL. BFF тестирует exact trusted PUBLIC_ORIGIN и spoofed forwarded headers. Gateway тесты проверяют auth/HTTPS redirect/host/origin/stripping/body/timeout.
 
-После подключения DeepSeek полный реальный HTTP сценарий прошёл: материал → генерация задания → содержательный ответ сотрудника → оценка100/100 (40/30/30),4 точные цитаты, рекомендации и персональный текст → результат у менеджера. Два real calls списали1177 внутренних кредитов (395+782), повтор генерации списал0. Сумма AiCall.cost совпала с изменением баланса; requested model и responseModel — deepseek-flash.
+## Playwright и действительная публикация
 
-Результат100/100 и подробный разбор с критериями/цитатами дополнительно открыты в браузере: [снимок реального результата](screenshots/live-deepseek-result.jpg). DeepSeek live evals:100/100/0/25/0,5 VALID calls, input3203 (cached1536), output2121, внутреннее списание3057. Всего7 успешных DeepSeek вызовов и4234 внутренних кредитов. Это не утверждение о точном vendor invoice.
+| Проверка | Фактический результат |
+|---|---|
+| Локальный Chromium suite |**5/5 PASS,1.1min,retries0**, бизнес-флоу/roles/docs/limits, invalid login, role tours, admin, mobile|
+| Public read-only smoke |**3/3 PASS,14.3s**, OWNER/EMPLOYEE/SUPER_ADMIN через настоящий HTTPS gate|
+| Public real AI business flow |PASS DOCX upload/original hash→DeepSeek task→employee answer/evaluation→manager report|
+| Public financial check |2 real provider calls,891internalcredits; balance delta=AiCall.cost; cached generate0|
+| Public result |score100/100,2точныецитаты, критерии/пробелы/рекомендации/персональный материал|
+| Public auth/files/mobile |anonymous401, authorized login200; Secure/HttpOnly/Lax; foreign file404;390px nooverflow и replaytour|
+| Public registration after enabling |PASS: новая компания/OWNER/0balance/emptyworkspace/ownteam, onboarding, logout+login, Alpha download404;0AIcalls; тестtenant удалён|
 
-Финальный набор `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm evals`, `pnpm build` повторно прошёл после изменения провайдера. Историческая проверка отсутствующего ключа выше относится к этапу до его предоставления; текущий сервис настроен на реальный DeepSeek.
+Действительный адрес: **https://nights-known-believed-meetup.trycloudflare.com**. Случайные gate/app credentials только в локальном `.runtime/review/access.txt`600. На текущей закрытой ссылке регистрация и Demo пополнение включены явно по уточнению заказчика. Обычный production без flags запрещает их. После смены review flag API перезапущен и HTTPS регистрация проверена заново. Первоначальный public тестregistration403 относится к состоянию **до** включения и не выдаётся за текущую политику.
 
-## Реализовано
-Nest backend, Next UI, PostgreSQL schema/migrations/seed, real session auth/roles/tenant scopes, текстовые материалы/задания/attempts/results, общие Zod контракты, реальные DeepSeek и optional OpenAI adapters, grounding/retry/audit/cache, usage-based integer tariff/reserve/settlement, cache tokens, user limits, Demo topup idempotency, owner/manager/admin views и документация с историей Git.
+Локальный browser harness заменяет только AiProvider через DI; auth/Prisma/PostgreSQL/Next/деньги настоящие. Публичная версия использует настоящий DeepSeek, без fixture режима. Отчёты, команды и границы: [browser-tests.md](browser-tests.md). Снимки: [обучение](screenshots/public-onboarding.jpg), [результат](screenshots/public-result.jpg), [мобильный тур](screenshots/public-mobile-tour.jpg).
 
-## Упрощено
-Один практический кейс на материал; критерии40/30/30 хранятся в company и snapshot assignment без UI редактора. Рекомендации и персональный текст включены в единый evaluation AI вызов. Один AppModule, тонкий Prisma Repository. Application-level tenant isolation, не RLS. Накопительный employee limit, без периодических budget resets. PaymentProvider/NotificationSender — explicit Demo DI mocks; текстовое хранилище реально PostgreSQL. DeepSeek JSON mode с локальной Zod-проверкой заменяет серверный strict JSON Schema по последнему выбору заказчика; OpenAI strict adapter сохранён. Внутренний фиксированный тариф отличается от invoice скидок провайдера: ADR0010.
+После пересоздания временного tunnel текущий адрес снова проверен: registration и upload UI через HTTPS PASS, без AI. Загрузка проверяет настоящий DOCX/оригинал, отказ для сканированного PDF, имя файла, pending disabled у обоих полей и кнопки, aria-busy, очистку/восстановление после успеха. На390px кнопка повторного обучения в шапке не пересекается с upload submit, горизонтального переполнения нет; временные тестовые данные удалены. Исторический891-credit real AI сценарий выполнен на предыдущем tunnel адресе с той же review БД; платный API не запускался заново ради смены hostname.
 
-## Не подтверждено / границы
-DeepSeek реально проверен на пяти eval случаях и одном сквозном сценарии. Это ограниченный набор, не доказательство семантической правильности на любых материалах. OpenAI не получил успешного completion из-за credit_balance_exhausted; его модель gpt-4o-mini остаётся optional и помечена Deprecated. Полное буквальное соответствие исходному OpenAI strict требованию не заявляется для DeepSeek: согласованное изменение описано в ADR0010.
+## Аудит и исправления
 
-Первый OpenAI operation efc6746b-d603-495c-9dcd-be03ae1e5443 сохранил UNKNOWN и резерв100000, поскольку из первоначального аудита нельзя доказать его исход. Диагностический429 записан отдельно, а дальнейшие известные отказы уже освобождают неиспользованный резерв. На момент live приёмки доступный баланс Альфы995766:1100000 Demo средств минус100000 UNKNOWN резерва минус4234 известных DeepSeek расходов. Неопределённая сумма в UI не выдаётся за0.
+Независимые review Sol приняли backend, finance/revision, file processing и onboarding. Исправлены пустые обязательные AI строки; неверная трактовка последних100/200 записей как глобальных итогов (теперь exact aggregates+отдельные окна+все unresolved); двойной учёт стоимости при ручной многокруговой сверке; внешний Origin при внутреннем Next URL; неполное завершение process tree; частичное принятие слишком длинного PDF. После исправлений проведены regression checks и свежие review. По ручным замечаниям заказчика исправлены форма загрузки и ролевые переходы меню; все видимые sidebar links владельца/руководителя/сотрудника проверяются кликами, существующим target и viewport. Кнопка повторного тура перенесена из плавающего положения в шапку. Playwright selectors/доступное имя диалога скорректированы по фактическому UI; итоговый прогон полностью успешен.
 
-Нет публичного размещения, реальных платежей/email, SSO/reset password/rate limiting, файлового импорта, автосверки UNKNOWN/PENDING, backup automation. После crash или unknown usage резерв удерживается до ручной сверки; см README. Нет отдельного теста одновременного редактирования employee limit и AI резерва, хотя conditional updates защищают изменение. Exact quotes+criteria не доказывают семантическую правильность всех рекомендаций; требуется контроль руководителя.
+Полное сопоставление с исходным ТЗ, согласованными изменениями и понятностью архитектуры: [project-audit.md](project-audit.md). Новое review изоляции не нашло подтверждённого cross-company read/mutation; покрытие усилено и suite повторён независимо.
 
-## Трудозатраты
-Обычная разработка оценена в84–124 человеко-часа по условной ставке в docs/plan.md. Измеряемый интервал от bootstrap-коммита19:46:11 до полного финального набора проверок20:24:08 MSK —38.0 минут (0.63 часа), без предварительного разбора и завершающего оформления. Это wall-clock параллельной агентной работы, не суммарные человеко-часы. Выполнены5 плановых этапов, независимое review/браузерные исправления и дополнительная итерация реального DeepSeek по новому запросу. Подтверждённое внутреннее списание live DeepSeek —4234 кредитов; точный внешний invoice не проверялся.
+## Что упрощено и не доказано
+
+Modular monolith, тонкий Prisma Repository, application-level tenancy без PostgreSQL RLS. Один кейс на материал, snapshot критериев без редактора; накопительные лимиты без budget periods. PaymentProvider/NotificationSender — явные Demo DI реализации. Нет реальной оплаты/email, SSO/reset password, автоматического UNKNOWN/PENDING reconciler. Неизвестный внешний исход удерживает резерв до [ручной сверки](reconciliation.md).
+
+DeepSeek JSON mode с локальной Zod/evidence проверкой — согласованное изменение исходного требования OpenAI strict schema (ADR0010). Optional OpenAI adapter не получил успешного completion на выданном аккаунте из-за429 credit_balance_exhausted. Пять live eval случаев ранее прошли100/100/0/25/0; их записанные ответы повторно проверяются offline. Эти кейсы и два реальных end-to-end сценария не доказывают семантическую правильность любого AI ответа; нужен контроль руководителя.
+
+OCR отсутствует; PDF нужен текстовый слой. Сложные Word/PDF элементы могут не войти в извлечение, полный сохранённый текст виден до генерации. Файл≤5МиБ и текст60–12000символов; длинное отклоняется. Chromium проверен на desktop и390px, другие браузеры/реальные мобильные устройства отдельно не прогонялись.
+
+Временный Mac URL зависит от процессов/сети и меняется при пересоздании tunnel; постоянный VPS/автозапуск/защита от сна/offsite backup не настроены. Paired backup/restore проверен, ежедневный systemd timer — только будущий VPS template. Массовая обработка произвольных файлов потребует ограничения конкурентности и OS memory sandbox. Исторический UNKNOWN OpenAI в исходной локальной БД сохранён с резервом100000, в review БД не переносился и без доказательств не корректировался.
+
+## Очистка и трудозатраты
+
+Безопасно очищены воспроизводимые кэши: сразу до/после220→4404МиБ свободно, после новых сборок около3.1ГиБ. Docker engine отсутствует, контейнеры/volumes не удалялись. [Протокол](maintenance-cleanup.md).
+
+Исходная оценка84–124ч — бюджетный ориентир обычной разработки, не фактические человеко-часы агента. Зафиксированный исторический интервал первоначального MVP19:46:11–20:24:08MSK составил38.0мин wall-clock; последующие итерации: публикация/packaging, documents, onboarding, security review, backup, Playwright, расширенная isolation и включение регистрации/GitHub. Полная длительность расширенного этапа и сумма агентных человеко-часов не измерялись. Старый локальный live:7успешныхDeepSeekcalls/4234internalcredits; отдельный публичный live:2calls/891. Это внутренний учёт, внешний invoice не проверялся.
+
+## Дополнительная оценка содержательного качества ИИ
+
+По последнему запросу заказчика выполняется отдельная реальная проверка трёх контролируемых ответов по предоставленному учебному регламенту. Она оценивает смысл баллов и рекомендаций, а не только Zod/цитаты. Результат будет записан отдельно в ai-quality-review.md; текущие зелёные технические тесты не подменяют эту проверку.

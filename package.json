@@ -3,27 +3,33 @@
   "private": true,
   "packageManager": "pnpm@10.11.0",
   "scripts": {
-    "dev": "node --env-file=.env node_modules/turbo/bin/turbo run dev",
+    "dev": "pnpm --filter @praktikum/types build && node --env-file=.env node_modules/turbo/bin/turbo run dev",
     "build": "turbo run build",
     "lint": "eslint apps packages",
     "typecheck": "turbo run typecheck",
-    "test": "pnpm --filter @praktikum/api test",
-    "test:e2e": "node --env-file=.env --import tsx apps/api/test/e2e.ts",
-    "evals": "node --env-file=.env --import tsx apps/api/test/evals.ts",
+    "test": "pnpm --filter @praktikum/types build && pnpm --filter @praktikum/api test && pnpm exec tsx --test apps/web/test/*.test.ts && node --test deploy/review-gateway.test.mjs",
+    "test:e2e": "pnpm --filter @praktikum/types build && node --env-file=.env --import tsx apps/api/test/e2e.ts",
+    "evals": "pnpm --filter @praktikum/types build && node --env-file=.env --import tsx apps/api/test/evals.ts",
     "db:generate": "pnpm --filter @praktikum/api exec prisma generate",
     "db:migrate": "node --env-file=.env node_modules/prisma/build/index.js migrate deploy --schema apps/api/prisma/schema.prisma",
-    "db:seed": "node --env-file=.env --import tsx apps/api/prisma/seed.ts"
+    "db:seed": "pnpm --filter @praktikum/types build && node --env-file=.env --import tsx apps/api/prisma/seed.ts",
+    "start:api": "node apps/api/dist/src/main.js",
+    "start:web": "pnpm --filter @praktikum/web start",
+    "provision:review": "node --env-file=.env --import tsx deploy/provision-review.ts",
+    "test:browser": "pnpm --filter @praktikum/types build && BROWSER_E2E=1 node --env-file=.env node_modules/@playwright/test/cli.js test --project=local-browser",
+    "test:browser:remote": "node node_modules/@playwright/test/cli.js test --project=production-smoke"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
+    "@eslint/js": "^9.39.0",
+    "@playwright/test": "1.64.1",
+    "@prisma/client": "6.19.0",
+    "@types/node": "^24.10.0",
+    "eslint": "^9.39.0",
+    "prettier": "^3.6.2",
+    "prisma": "6.19.0",
     "tsx": "^4.20.6",
     "turbo": "^2.6.0",
-    "prisma": "6.19.0",
-    "@types/node": "^24.10.0",
-    "@prisma/client": "6.19.0",
-    "eslint": "^9.39.0",
-    "typescript-eslint": "^8.48.0",
-    "@eslint/js": "^9.39.0",
-    "prettier": "^3.6.2"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.0"
   }
 }

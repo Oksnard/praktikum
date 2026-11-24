@@ -2,11 +2,12 @@
   "name": "@praktikum/types",
   "version": "1.0.0",
   "private": true,
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "types": "src/index.ts",
   "scripts": {
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit false --outDir dist --declaration"
   },
   "dependencies": {
     "zod": "3.25.76"

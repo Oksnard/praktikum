@@ -1,3 +1,7 @@
+import { DocumentsController } from "./documents/controller";
+import { DocumentsService } from "./documents/service";
+import { DocumentParser } from "./documents/parser";
+import { FileStorage, LocalFileStorage } from "./documents/storage";
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { Repository } from "./repository";
@@ -12,9 +16,12 @@ import {
   PaymentProvider,
 } from "./providers";
 @Module({
-  controllers: [AppController],
+  controllers: [AppController, DocumentsController],
   providers: [
     Repository,
+    DocumentsService,
+    DocumentParser,
+    { provide: FileStorage, useClass: LocalFileStorage },
     AppService,
     AiService,
     { provide: AiProvider, useFactory: configuredAiProvider },

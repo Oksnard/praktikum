@@ -35,6 +35,10 @@ model Material {
  companyId String
  title String
  text String
+ attachmentKey String?
+ attachmentName String?
+ attachmentMime String?
+ attachmentSize Int?
  createdAt DateTime @default(now())
  assignments Assignment[]
  @@index([companyId])

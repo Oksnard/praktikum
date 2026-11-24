@@ -15,7 +15,9 @@ import {
   submitAnswer,
   topUp,
 } from "@/app/actions";
+import { MaterialUpload } from "@/app/material-upload";
 import { SubmitButton } from "@/app/submit-button";
+import { OnboardingTour } from "@/app/onboarding-tour";
 
 const roles: Record<string, string> = {
   OWNER: "Владелец",
@@ -74,10 +76,11 @@ export default async function DashboardPage({
           <a className="nav-item" href="#materials">
             <span>▤</span>Материалы <i>{data.materials.length}</i>
           </a>
-          <a className="nav-item" href="#learning">
-            <span>◎</span>Моё обучение
+          <a className="nav-item" href={manager ? "#results" : "#learning"}>
+            <span>◎</span>
+            {manager ? "Результаты команды" : "Моё обучение"}
           </a>
-          {manager && (
+          {owner && (
             <a className="nav-item" href="#team">
               <span>♧</span>Команда
             </a>
@@ -114,6 +117,7 @@ export default async function DashboardPage({
             Рабочее место <span>/</span> Обзор
           </div>
           <div className="top-actions">
+            <OnboardingTour userId={user.id} role={user.role} />
             <span className="live-pill">
               <i />
               Сервис активен
@@ -357,6 +361,7 @@ export default async function DashboardPage({
                 </div>
               </form>
             )}
+            {manager && <MaterialUpload />}
             {data.materials.length ? (
               <div className="material-grid">
                 {data.materials.map((m) => {
@@ -371,6 +376,14 @@ export default async function DashboardPage({
                       </div>
                       <h3>{m.title}</h3>
                       <p className="material-fulltext">{m.text}</p>
+                      {m.attachmentName && (
+                        <a
+                          className="button secondary"
+                          href={`/api/materials/${m.id}/file`}
+                        >
+                          Скачать {m.attachmentName}
+                        </a>
+                      )}
                       <div className="material-meta">
                         <span>{date(m.createdAt)}</span>
                         <span>{m.text.length} знаков</span>

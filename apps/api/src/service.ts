@@ -1,3 +1,4 @@
+import { productionPolicy } from "./production-policy";
 import {
   ConflictException,
   ForbiddenException,
@@ -32,6 +33,10 @@ export class AppService {
     @Inject(NotificationSender) private notifications: NotificationSender,
   ) {}
   async register(x: z.infer<typeof RegisterSchema>) {
+    if (!productionPolicy().allowRegistration)
+      throw new ForbiddenException(
+        "Регистрация в закрытой проверке отключена. Используйте выданную учётную запись.",
+      );
     if (
       await this.db.user.findUnique({ where: { email: x.email.toLowerCase() } })
     )
@@ -146,8 +151,15 @@ export class AppService {
     return {
       user: userView(u),
       company,
-      materials,
-      assignments,
+      materials: materials.map(
+        ({ attachmentKey: _key, ...material }) => material,
+      ),
+      assignments: assignments.map(
+        ({
+          material: { attachmentKey: _key, ...material },
+          ...assignment
+        }) => ({ ...assignment, material }),
+      ),
       attempts,
       users,
       transactions,
@@ -251,6 +263,10 @@ export class AppService {
     return { ok: true };
   }
   async topup(u: User, x: z.infer<typeof TopUpSchema>) {
+    if (!productionPolicy().allowMockTopUps)
+      throw new ForbiddenException(
+        "Demo пополнение на публичном сервере отключено. Обратитесь к владельцу сервиса.",
+      );
     const companyId = tenant(u),
       key = `topup:${companyId}:${x.key}`;
     const payment = await this.payment.createTopUp(x.amount, key);
@@ -278,18 +294,57 @@ export class AppService {
     });
   }
   async ledger() {
-    const [companies, transactions, operations, calls] = await Promise.all([
-      this.db.company.findMany(),
-      this.db.creditTransaction.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 200,
-      }),
-      this.db.aiOperation.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 100,
-      }),
-      this.db.aiCall.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
-    ]);
-    return { companies, transactions, operations, calls };
+    const [
+      companies,
+      transactions,
+      recentOperations,
+      unresolved,
+      calls,
+      transactionCount,
+      operationCount,
+      callTotals,
+    ] = await this.db.$transaction(
+      [
+        this.db.company.findMany(),
+        this.db.creditTransaction.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 200,
+        }),
+        this.db.aiOperation.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        }),
+        this.db.aiOperation.findMany({
+          where: { status: { in: ["PENDING", "UNKNOWN"] } },
+          orderBy: { createdAt: "desc" },
+        }),
+        this.db.aiCall.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
+        this.db.creditTransaction.count(),
+        this.db.aiOperation.count(),
+        this.db.aiCall.aggregate({ _count: true, _sum: { cost: true } }),
+      ],
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+    const operations = Array.from(
+      new Map(
+        [...unresolved, ...recentOperations].map((o) => [o.id, o]),
+      ).values(),
+    ).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return {
+      companies,
+      transactions,
+      operations,
+      calls,
+      totals: {
+        companies: companies.length,
+        transactions: transactionCount,
+        operations: operationCount,
+        calls: callTotals._count,
+        knownAiCost: callTotals._sum.cost ?? 0,
+        unresolvedOperations: unresolved.length,
+        unresolvedReserved: unresolved.reduce((sum, o) => sum + o.reserved, 0),
+      },
+      windows: { transactions: 200, recentOperations: 100, calls: 100 },
+    };
   }
 }

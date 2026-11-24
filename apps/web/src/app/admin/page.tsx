@@ -2,37 +2,9 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { api, COOKIE } from "@/lib/api";
 import { signOut } from "@/app/actions";
+import { OnboardingTour } from "@/app/onboarding-tour";
 
-type Ledger = {
-  companies: { id: string; name: string; balance: number }[];
-  transactions: {
-    id: string;
-    amount: number;
-    kind: string;
-    createdAt: string;
-    companyId: string;
-    userId: string | null;
-  }[];
-  operations: {
-    id: string;
-    status: string;
-    cost: number;
-    reserved: number;
-    createdAt: string;
-    companyId: string;
-  }[];
-  calls: {
-    id: string;
-    model: string;
-    promptTokens: number;
-    completionTokens: number;
-    cost: number;
-    latencyMs: number;
-    validationStatus: string;
-    createdAt: string;
-    companyId: string;
-  }[];
-};
+import type { AdminLedger as Ledger, UserView } from "@praktikum/types";
 const fmt = (x: number) => new Intl.NumberFormat("ru-RU").format(x);
 const when = (x: string) =>
   new Intl.DateTimeFormat("ru-RU", {
@@ -42,8 +14,12 @@ const when = (x: string) =>
 export default async function AdminPage() {
   if (!(await cookies()).has(COOKIE)) redirect("/login");
   let ledger: Ledger;
+  let user: UserView;
   try {
-    ledger = await api<Ledger>("/admin/ledger");
+    [ledger, user] = await Promise.all([
+      api<Ledger>("/admin/ledger"),
+      api<UserView>("/me"),
+    ]);
   } catch {
     redirect("/login");
   }
@@ -90,10 +66,13 @@ export default async function AdminPage() {
           <div className="crumb">
             Платформа <span>/</span> Движение средств
           </div>
-          <span className="live-pill">
-            <i />
-            Сводные данные
-          </span>
+          <div className="top-actions">
+            <OnboardingTour userId={user.id} role={user.role} />
+            <span className="live-pill">
+              <i />
+              Сводные данные
+            </span>
+          </div>
         </header>
         <div className="content" id="admin-overview">
           <section className="welcome">
@@ -110,23 +89,22 @@ export default async function AdminPage() {
               <span className="stat-icon cyan">♧</span>
               <div>
                 <small>Компании</small>
-                <strong>{ledger.companies.length}</strong>
+                <strong>{ledger.totals.companies}</strong>
               </div>
             </article>
             <article className="stat-card">
               <span className="stat-icon violet">◎</span>
               <div>
                 <small>AI операции</small>
-                <strong>{ledger.operations.length}</strong>
+                <strong>{ledger.totals.operations}</strong>
               </div>
             </article>
             <article className="stat-card">
               <span className="stat-icon gold">◈</span>
               <div>
-                <small>Расход AI</small>
+                <small>Известная стоимость AI за всё время</small>
                 <strong>
-                  {fmt(ledger.operations.reduce((n, o) => n + o.cost, 0))}{" "}
-                  <em>кредитов</em>
+                  {fmt(ledger.totals.knownAiCost)} <em>кредитов</em>
                 </strong>
               </div>
             </article>
@@ -168,6 +146,10 @@ export default async function AdminPage() {
               <div>
                 <p className="eyebrow">ФИНАНСОВЫЙ АУДИТ</p>
                 <h2>Движение кредитов</h2>
+                <p className="small muted">
+                  Последние {ledger.windows.transactions} из{" "}
+                  {fmt(ledger.totals.transactions)} записей за всё время.
+                </p>
               </div>
             </div>
             <div className="table-wrap">
@@ -215,6 +197,12 @@ export default async function AdminPage() {
               <div>
                 <p className="eyebrow">AI AUDIT</p>
                 <h2>Операции и стоимость</h2>
+                <p className="small muted">
+                  Последние {ledger.windows.recentOperations} операций и все
+                  незавершённые независимо от даты. Не завершено:{" "}
+                  {fmt(ledger.totals.unresolvedOperations)}; удержано:{" "}
+                  {fmt(ledger.totals.unresolvedReserved)} кредитов.
+                </p>
               </div>
             </div>
             <div className="table-wrap">
@@ -255,10 +243,11 @@ export default async function AdminPage() {
               </table>
             </div>
             <p className="small muted">
-              AI вызовов в журнале: {ledger.calls.length}. Стоимость
-              рассчитывается по фактическим токенам и внутреннему тарифу,
-              который может отличаться от счёта провайдера. Для UNKNOWN и
-              PENDING итоговая сумма ещё не известна.
+              В выборке последние {ledger.windows.calls} AI вызовов; всего:{" "}
+              {fmt(ledger.totals.calls)}. Стоимость рассчитывается по
+              фактическим токенам и внутреннему тарифу, который может отличаться
+              от счёта провайдера. Для UNKNOWN и PENDING итоговая сумма ещё не
+              известна.
             </p>
           </section>
           <footer className="footer">
