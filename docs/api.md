@@ -1,0 +1,7 @@
+# HTTP contract
+Base http://localhost:3011. JSON. Errors Nest {statusCode,message}. Protected routes Authorization: Bearer <opaque session token>. Login/register response {token,user}. /auth/logout POST revokes token. GET /me → UserView. GET /dashboard → Dashboard (packages/types). Password min10.
+
+POST /auth/register {email,password,name,companyName} → owner, empty balance.
+POST /auth/login {email,password}. POST /materials {title,text} → Material. POST /materials/:id/generate {} → Assignment. POST /assignments/:id/attempts {answer} → Attempt. GET /dashboard is full tenant workspace; employees see own attempts, no users/ledger. OWNER/MANAGER can create material and generate. OWNER only POST /users {email,password,name,role:MANAGER|EMPLOYEE,limit}; PATCH /users/:id/limit {limit}; POST /credits/topup {amount,key:uuid} → Demo transaction. OWNER/MANAGER see manager report in dashboard.attempts. SUPER_ADMIN GET /admin/ledger → {companies,transactions,operations,calls}. No tenant controls for superadmin. All timestamps ISO strings. Units: integer microUSD. Max reservation shown in UI:100000 credits/AI action; actual usage refunded after settlement.
+
+UI: auth login/register pages, /dashboard with role-aware materials, assignments/answer forms, manager result evidence/recommendations, owner employees/limit and balance/topup forms, admin ledger. Next BFF forwards bearer cookie, never localStorage. Use client action form + refresh for mutations. Request cache no-store. API key missing returns explicit 503 before reservation.

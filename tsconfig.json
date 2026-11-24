@@ -1,0 +1,9 @@
+{
+  "extends": "./packages/config/tsconfig.json",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "module": "commonjs",
+    "moduleResolution": "node"
+  }
+}

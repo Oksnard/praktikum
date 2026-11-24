@@ -1,0 +1,111 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+}
+model Company {
+ id String @id @default(uuid())
+ name String
+ balance Int @default(0)
+ criteria Json
+ createdAt DateTime @default(now())
+}
+model User {
+ id String @id @default(uuid())
+ companyId String?
+ email String @unique
+ name String
+ passwordHash String
+ role String
+ limit Int @default(100000)
+ spent Int @default(0)
+ sessions Session[]
+ attempts Attempt[]
+}
+model Session {
+ id String @id
+ userId String
+ user User @relation(fields:[userId], references:[id],onDelete:Cascade)
+ expiresAt DateTime
+}
+model Material {
+ id String @id @default(uuid())
+ companyId String
+ title String
+ text String
+ createdAt DateTime @default(now())
+ assignments Assignment[]
+ @@index([companyId])
+}
+model Assignment {
+ id String @id @default(uuid())
+ companyId String
+ materialId String
+ material Material @relation(fields:[materialId],references:[id])
+ content Json
+ criteria Json
+ operationId String @unique
+ createdAt DateTime @default(now())
+ attempts Attempt[]
+ @@index([companyId])
+}
+model Attempt {
+ id String @id @default(uuid())
+ companyId String
+ assignmentId String
+ assignment Assignment @relation(fields:[assignmentId],references:[id])
+ userId String
+ user User @relation(fields:[userId],references:[id])
+ answer String
+ evaluation Json
+ operationId String @unique
+ createdAt DateTime @default(now())
+ @@index([companyId,userId])
+}
+model AiOperation {
+ id String @id @default(uuid())
+ companyId String
+ userId String
+ requestHash String @unique
+ kind String
+ status String @default("PENDING")
+ reserved Int
+ cost Int @default(0)
+ result Json?
+ createdAt DateTime @default(now())
+ calls AiCall[]
+}
+model AiCall {
+ id String @id @default(uuid())
+ companyId String
+ operationId String
+ operation AiOperation @relation(fields:[operationId],references:[id])
+ model String
+ promptTokens Int
+ completionTokens Int
+ cost Int
+ latencyMs Int
+ requestHash String
+ responseJson Json
+ validationStatus String
+ createdAt DateTime @default(now())
+}
+model CreditTransaction {
+ id String @id @default(uuid())
+ companyId String
+ userId String?
+ amount Int
+ kind String
+ key String @unique
+ createdAt DateTime @default(now())
+ @@index([companyId])
+}
+model Notification {
+ id String @id @default(uuid())
+ companyId String
+ userId String
+ message String
+ createdAt DateTime @default(now())
+}
