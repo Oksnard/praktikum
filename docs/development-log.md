@@ -90,3 +90,7 @@
 - Финальный root набор после deployment:28focused/HTTPe2e/8offlineevals/lint/typecheck/5localPW1.1minPASS; production-smoke3/3PASS20.0s. PublicqualityUI потребовал смены модели после двух follow-up исправленийLuna: Astra наблюдал фактическийDOM и правильно разделил подпись прежнего отчёта/предупреждение старого задания, усилил финансовый снимок до owner-scope. Полный финальный runPASS;3изображения пересняты целиком подstickyheader и осмотрены, все4сессииотозваны,409безsideeffects подтверждён,0AI. Root отдельно прочитал тест и просмотрел fullPNG; type-only DTO/strictTSC проверяются перед commit.
 
 - Root исправил только тестовый DTO (реальныйassignmentId вложенного Attempt) и убрал неверное неиспользуемое поле; strictTSC поизолированномуconfig, ESLint иPrettierPASS. Runtime тест/продукт не менялись, повтор браузера не требовался. Финальный working/history/staged secretscan не обнаружил private credential values/key patterns; значения не выводились.
+
+## Итоговая публикация
+
+Принятый AI release29e6547 отправлен вpublicOksnard/praktikum/master; remoteSHA29e6547f84c2c503b211943a798a9f3d7ddfdc11 совпал с локальным. GitHub подтвердилisPrivate=false и опубликованный ai-quality-review.md. Последующая запись checkpoint меняет только документацию. Процессы опубликованного приложения оставлены работать; ключи/доступы/runtime/БД вGit не попали.
