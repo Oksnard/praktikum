@@ -19,7 +19,7 @@ import { digest, tenant } from "./auth";
 export const MODEL = "gpt-4o-mini";
 export const RESERVE = AI_RESERVE_CREDITS;
 export function usageCost(input: number, output: number) {
-  return Math.ceil(input * 0.15 + output * 0.6);
+  return Math.floor((input * 15 + output * 60 + 99) / 100);
 }
 export abstract class AiProvider {
   abstract available(): boolean;

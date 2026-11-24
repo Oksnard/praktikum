@@ -8,6 +8,7 @@ test("usage pricing rounds up microUSD from actual token counts", () => {
   assert.equal(usageCost(1000, 200), 270);
   assert.equal(usageCost(1, 0), 1);
   assert.equal(usageCost(0, 0), 0);
+  assert.equal(usageCost(1_000_000, 1_000_000), 750_000);
 });
 test("password hashing salts and verifies without plaintext", () => {
   const h = hashPassword("correct password");

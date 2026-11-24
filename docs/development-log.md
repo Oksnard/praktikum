@@ -24,3 +24,6 @@
 - Context7 pnpm build script permissions checked https://github.com/pnpm/pnpm.io/blob/main/docs/settings/build.md ; для закреплённого pnpm10.11 используется onlyBuiltDependencies (новый allowBuilds требует10.26+).
 - Полные pnpm lint и pnpm typecheck PASS после готовности исходников UI; pnpm evals PASS всех5 authored snapshots. Не выдаём authored fixtures за live записи.
 - Добавлены PostgreSQL CHECK nonnegative для баланса/расходов/лимитов/AI стоимости как дополнительная защита от ошибок нового кода.
+
+## Денежная точность
+Стоимость вычисляется через целочисленный числитель `(promptTokens*15 + completionTokens*60 +99)/100` с floor, без сложения дробных тарифов. Unit на миллион входных/выходных токенов подтверждает750000 microUSD. Повторные4 unit и API typecheck PASS. API build и git diff --check PASS; AGENTS35 строк.
