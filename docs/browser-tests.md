@@ -97,3 +97,10 @@ node --env-file=.runtime/review/browser.env --import tsx tests/public-quality-ui
 ```
 
 Prerequisite: operator-created private baseline/V2 QA state and sealed results under ignored `.runtime/ai-quality-assessment*`; these credentials/artifacts are intentionally absent from GitHub. This is a no-AI read/denial check, not a replacement for paid semantic QA. Accepted evidence `.runtime/review/quality-ui-result.json` and `quality-ui-astra-acceptance.log`. Three cropped result images preserve the complete card below the sticky header; no credential forms, traces or video are captured. Earlier failures were incorrect test selectors and screenshots, retained in private logs; the final complete run passed.
+
+## 25.11.2026 — HTTP/LAN и повторный HTTPS smoke
+
+- LAN `http://192.168.31.195:8080`: production-smoke3/3 PASS5.7s, owner/employee/super-admin.
+- Изолированный тестовый tenant через настоящий UI: register, cookie/reload, DOCX upload201/download SHA256, чужой Origin403, logout/login PASS; тестовые записи и файл удалены,0provider calls. На двух предварительных прогонах исправлены только selectors скрипта, итоговый проход полный.
+- После web build HTTPS `https://coaches-explains-teach-hewlett.trycloudflare.com`: production-smoke3/3 PASS9.8s; отдельная проверка Secure/HttpOnly/Lax+logout PASS. Старый nights URL выше является историческим результатом и больше не действует.
+- Логи и детальный приватный результат: `.runtime/review/lan-20261125-smoke.log`, `lan-http-check-result.json`, `https-after-http-20261125-smoke.log`. Внешний доступ по прямому IP и другое физическое устройство этим не доказаны.

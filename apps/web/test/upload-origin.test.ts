@@ -39,3 +39,25 @@ test("public upload origin survives internal Next bind URL and rejects forged fo
     true,
   );
 });
+
+test("explicit HTTP IP upload origin is supported without trusting forwarded headers", () => {
+  const origin = "http://192.168.31.195:8080";
+  const request = (value: string) =>
+    new Request("http://127.0.0.1:8081/api/materials/upload", {
+      headers: {
+        Host: "192.168.31.195:8080",
+        Origin: value,
+        "X-Forwarded-Proto": "https",
+        "X-Forwarded-Host": "attacker.example",
+      },
+    });
+  assert.equal(uploadOriginAllowed(request(origin), origin), true);
+  assert.equal(
+    uploadOriginAllowed(request("http://192.168.31.195:8081"), origin),
+    false,
+  );
+  assert.equal(
+    uploadOriginAllowed(request("https://192.168.31.195:8080"), origin),
+    false,
+  );
+});

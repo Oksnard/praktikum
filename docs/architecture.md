@@ -15,7 +15,7 @@ flowchart LR
  API -. optional strict JSON Schema .-> OA[OpenAI]
 ```
 
-Это текущая **временная публикация с Mac**, а не VPS hosting. Публичный адрес: https://nights-known-believed-meetup.trycloudflare.com . Он зависит от работающих Mac, сети и tunnel. Публичная review БД отдельна от локальной демо/тестовой; известные demo passwords не используются. Systemd/nginx templates — будущий вариант, не свидетельство развёртывания на VPS. Подробности: [deployment](deployment.md), [ADR0011](decisions/0011-temporary-mac-review.md).
+Это текущая **временная публикация с Mac**, а не VPS hosting. Публичный адрес: https://coaches-explains-teach-hewlett.trycloudflare.com . Он зависит от работающих Mac, сети и tunnel. Публичная review БД отдельна от локальной демо/тестовой; известные demo passwords не используются. Systemd/nginx templates — будущий вариант, не свидетельство развёртывания на VPS. Подробности: [deployment](deployment.md), [ADR0011](decisions/0011-temporary-mac-review.md).
 
 ## Компоненты и данные
 

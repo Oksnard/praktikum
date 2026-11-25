@@ -1,4 +1,4 @@
-# Публичная HTTPS проверка
+# Проверка с Mac: HTTPS и локальный HTTP по IP
 
 Цель: отдельный закрытый review deployment с настоящими NestJS/Next/PostgreSQL и DeepSeek. Никакой подмены AI/БД и переноса логики в несовместимый hosting. Опубликован с Mac по HTTPS; существование нижеописанных VPS templates само по себе не означает их развёртывание.
 
@@ -6,7 +6,7 @@
 
 По последнему запросу заказчика публикация идёт временно с Mac, не на VPS. Отдельная локальная PostgreSQL БД `praktikum_review`, API3311 и Next3300 работают в production; gateway3390 слушает только loopback. Cloudflared Quick Tunnel соединяет публичный HTTPS URL с gateway, который требует случайные review credentials на всех путях. Link временный: зависит от работающего Mac/сети/процессов и меняется при пересоздании tunnel. Это не постоянный hosting; systemd/nginx ниже — будущий вариант, не текущая публикация.
 
-На 2026-11-24 действует **https://nights-known-believed-meetup.trycloudflare.com**. Внешне проверены gate401/authorized200, реальный AI сценарий, cookie Secure/HttpOnly/Lax, регистрация и изоляция. Доступы только в локальном `.runtime/review/access.txt`600.
+На 2026-11-25 действует **https://coaches-explains-teach-hewlett.trycloudflare.com**. Внешне проверены gate401/authorized200, реальный AI сценарий, cookie Secure/HttpOnly/Lax, регистрация и изоляция. Доступы только в локальном `.runtime/review/access.txt`600.
 
 Root создаёт отдельный private env600 и пустую review БД; `deploy/provision-review.ts` создаёт две компании alpha/beta с OWNER/MANAGER/EMPLOYEE и SUPER_ADMIN только в alpha, все app passwords случайны. Исходная локальная БД и её UNKNOWN не копируются и не изменяются.
 
@@ -19,6 +19,23 @@ node --env-file=PRIVATE_REVIEW_ENV deploy/review-gateway.mjs
 В private env нужны REVIEW_PUBLIC_HOST (точный hostname без scheme/path), REVIEW_GATE_USER, REVIEW_GATE_PASSWORD (криптографически случайный32+bytes), REVIEW_GATE_PORT3390, REVIEW_UPSTREAM_PORT3300. Gateway не логирует credentials, BasicAuth сравнивает SHA256 digests constant-time, удаляет Authorization до Next, доверенные Host/X-Forwarded-Host/proto берёт из своей конфигурации, проверяет Origin, ограничивает headers/body, timeout180s. Публичный HTTP перенаправляется на HTTPS до challenge. Health/static/login тоже защищены. `node --test deploy/review-gateway.test.mjs` проверяет401/redirect/host/origin/stripping/body/timeout; отдельный внешний smoke подтверждает действительный tunnel, cookies и Server Actions.
 
 Для прямого локального smoke gateway нужен Host=REVIEW_PUBLIC_HOST и X-Forwarded-Proto=https. Это доверенный loopback интерфейс cloudflared, не самостоятельный публичный HTTP сервер. Не менять bind на0.0.0.0. Без gate публикация с включённым Demo пополнением запрещена выбранной review конфигурацией.
+
+## Прямой HTTP по IP Mac — 25.11.2026
+
+Локальный адрес: **http://192.168.31.195:8080**. Он предназначен для устройств в той же сети Wi-Fi. Next для HTTP работает отдельно на `127.0.0.1:8081`, gateway слушает только `192.168.31.195:8080`; API и PostgreSQL остаются на loopback. Общий пароль review и учётные записи приложения прежние. HTTPS экземпляр продолжает работать отдельно.
+
+Запуск уже подготовленных приватных конфигураций из корня проекта, в отдельных процессах:
+
+```bash
+node --env-file=.runtime/review/web-lan.env apps/web/node_modules/next/dist/bin/next start apps/web --hostname 127.0.0.1 --port 8081
+node --env-file=.runtime/review/gateway-lan.env deploy/review-gateway.mjs
+```
+
+HTTP требует явных `REVIEW_ALLOW_HTTP=true` у gateway и `REVIEW_ALLOW_HTTP_COOKIE=true` у отдельного Next, точного `PUBLIC_ORIGIN=http://192.168.31.195:8080` и соответствующих Host/Origin. BasicAuth защищает все пути; чужой Origin отвергается. Cookie HTTP сохраняет HttpOnly/SameSite=Lax; cookie production HTTPS по умолчанию остаётся Secure. Bind `0.0.0.0` запрещён. Детали конфигурации и проверенные источники: [http-review-source](http-review-source.md).
+
+Это локальный адрес, не публичная интернет-ссылка. Внешний вход по IP требует доступного входящим соединениям WAN IP и проброса TCP-порта на роутере; эти условия не настроены и не подтверждены. Роутер запросил авторизацию; автоматическое обнаружение UPnP gateway не дало ответа. Текущий LAN IP выдан DHCP: для постоянного адреса нужна резервация на роутере. Настройки роутера, VPN, DHCP и системного firewall не менялись. Mac должен оставаться включённым и не спать; автозапуск после reboot не установлен.
+
+При смене LAN IP нужно одновременно обновить bind/Host/Origin в обоих приватных env и URL browser smoke, затем перезапустить только HTTP пару. При сборке остановить оба Next экземпляра или собрать изолированный release: они используют один каталог `.next`. Новый IP сам по себе не меняет tenant или базу данных.
 
 ## Повторный запуск на этом Mac
 

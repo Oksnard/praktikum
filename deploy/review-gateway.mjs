@@ -1,20 +1,47 @@
 import http from "node:http";
+import { isIP } from "node:net";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 function credentialHash(value) {
   return createHash("sha256").update(value).digest();
 }
+export function reviewBindAddress(bind = "127.0.0.1", allowHttp = false) {
+  if (
+    !isIP(bind) ||
+    bind === "0.0.0.0" ||
+    bind === "::" ||
+    (!allowHttp && !["127.0.0.1", "::1"].includes(bind)) ||
+    (allowHttp && isIP(bind) !== 4 && bind !== "::1")
+  )
+    throw new Error("External review bind requires explicit HTTP review mode");
+  return bind;
+}
 export function createReviewGateway({
   hostname,
   user,
   password,
   upstreamPort = 3300,
+  allowHttp = false,
   timeoutMs = 180000,
   maxBodyBytes = 6 * 1024 * 1024,
 }) {
-  if (!/^[a-z0-9.-]+$/i.test(hostname) || !hostname.includes("."))
+  if (allowHttp) {
+    const match = /^([0-9.]+):([0-9]+)$/.exec(hostname);
+    if (
+      !match ||
+      isIP(match[1]) !== 4 ||
+      Number(match[2]) < 1024 ||
+      Number(match[2]) > 65535 ||
+      String(Number(match[2])) !== match[2]
+    )
+      throw new Error(
+        "HTTP review requires exact IPv4 authority and explicit port",
+      );
+  } else if (!/^[a-z0-9.-]+$/i.test(hostname) || !hostname.includes(".")) {
     throw new Error("Exact public review hostname required");
+  }
+  const protocol = allowHttp ? "http" : "https";
   if (
     !/^[a-zA-Z0-9_.-]{1,80}$/.test(user) ||
     typeof password !== "string" ||
@@ -62,7 +89,7 @@ export function createReviewGateway({
         req.resume();
         return;
       }
-      if (req.headers["x-forwarded-proto"] !== "https") {
+      if (!allowHttp && req.headers["x-forwarded-proto"] !== "https") {
         response(res, 308, "HTTPS required", {
           Location: `https://${hostname}${req.url?.startsWith("/") ? req.url : "/"}`,
         });
@@ -78,7 +105,12 @@ export function createReviewGateway({
         return;
       }
       const origin = req.headers.origin;
-      if (origin && origin !== `https://${hostname}`) {
+      if (
+        (origin && origin !== `${protocol}://${hostname}`) ||
+        (allowHttp &&
+          !["GET", "HEAD", "OPTIONS"].includes(req.method ?? "") &&
+          origin !== `${protocol}://${hostname}`)
+      ) {
         response(res, 403, "Unexpected request origin");
         req.resume();
         return;
@@ -107,7 +139,7 @@ export function createReviewGateway({
         ...req.headers,
         host: hostname,
         "x-forwarded-host": hostname,
-        "x-forwarded-proto": "https",
+        "x-forwarded-proto": protocol,
         "content-length": String(bytes),
       };
       for (const key of [
@@ -173,7 +205,10 @@ if (
   process.argv[1] &&
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
+  const allowHttp = process.env.REVIEW_ALLOW_HTTP === "true";
+  const bind = reviewBindAddress(process.env.REVIEW_GATE_BIND, allowHttp);
   const server = createReviewGateway({
+    allowHttp,
     hostname: process.env.REVIEW_PUBLIC_HOST ?? "",
     user: process.env.REVIEW_GATE_USER ?? "",
     password: process.env.REVIEW_GATE_PASSWORD ?? "",
@@ -182,9 +217,9 @@ if (
   const port = Number(process.env.REVIEW_GATE_PORT ?? 3390);
   if (!Number.isInteger(port) || port < 1024 || port > 65535)
     throw new Error("Invalid review gateway port");
-  server.listen(port, "127.0.0.1", () =>
+  server.listen(port, bind, () =>
     console.log(
-      `Private review gateway listening on loopback:${port}; credentials are never logged`,
+      `Private review gateway listening on ${bind}:${port}; credentials are never logged`,
     ),
   );
   for (const signal of ["SIGINT", "SIGTERM"])

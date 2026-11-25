@@ -120,7 +120,16 @@ test("review gate protects every path and proxies only sanitized authenticated r
       ).status,
       413,
     );
-    assert.equal((await request(port,{Authorization:auth,'Transfer-Encoding':'chunked'},'x'.repeat(101))).status,413);
+    assert.equal(
+      (
+        await request(
+          port,
+          { Authorization: auth, "Transfer-Encoding": "chunked" },
+          "x".repeat(101),
+        )
+      ).status,
+      413,
+    );
   } finally {
     await close(gate);
     await close(upstream);
@@ -148,4 +157,104 @@ test("review gate has a bounded upstream timeout and rejects weak configuration"
     await close(gate);
     await close(upstream);
   }
+});
+
+test("HTTP review is explicit, exact-authority, authenticated and ignores spoofed proxy protocol", async () => {
+  const authority = "192.168.31.195:8080";
+  const upstream = http.createServer((req, res) =>
+    res.end(JSON.stringify(req.headers)),
+  );
+  const upstreamPort = await listen(upstream);
+  const gate = createReviewGateway({
+    hostname: authority,
+    user: "review",
+    password,
+    upstreamPort,
+    allowHttp: true,
+  });
+  const port = await listen(gate);
+  const base = { Host: authority, "X-Forwarded-Proto": "https" };
+  try {
+    assert.equal((await request(port, base, "", "/health")).status, 401);
+    for (const host of [
+      "192.168.31.195",
+      "192.168.31.195:8081",
+      "attacker.example:8080",
+    ])
+      assert.equal(
+        (await request(port, { ...base, Host: host, Authorization: auth }))
+          .status,
+        421,
+      );
+    for (const origin of [
+      "https://" + authority,
+      "http://attacker.example:8080",
+    ])
+      assert.equal(
+        (
+          await request(
+            port,
+            { ...base, Authorization: auth, Origin: origin },
+            "x",
+          )
+        ).status,
+        403,
+      );
+    assert.equal(
+      (await request(port, { ...base, Authorization: auth }, "x")).status,
+      403,
+    );
+    const result = await request(
+      port,
+      {
+        ...base,
+        Authorization: auth,
+        Origin: "http://" + authority,
+        "X-Forwarded-Host": "attacker.example",
+        Forwarded: "proto=https",
+      },
+      "x",
+    );
+    assert.equal(result.status, 200);
+    const received = JSON.parse(result.data);
+    assert.equal(received["x-forwarded-proto"], "http");
+    assert.equal(received["x-forwarded-host"], authority);
+    assert.equal(received.host, authority);
+    assert.equal(received.authorization, undefined);
+    assert.equal(received.forwarded, undefined);
+  } finally {
+    await close(gate);
+    await close(upstream);
+  }
+});
+test("HTTP mode rejects ambiguous authorities and external bind is opt-in", async () => {
+  const { reviewBindAddress } = await import("./review-gateway.mjs");
+  assert.equal(reviewBindAddress(), "127.0.0.1");
+  assert.throws(() => reviewBindAddress("192.168.31.195"));
+  assert.equal(reviewBindAddress("192.168.31.195", true), "192.168.31.195");
+  assert.throws(() => reviewBindAddress("attacker.example", true));
+  assert.throws(() => reviewBindAddress("0.0.0.0", true));
+  assert.throws(() => reviewBindAddress("::", true));
+  for (const host of [
+    hostname,
+    "192.168.31.195",
+    "192.168.31.195:80",
+    "999.1.1.1:8080",
+    "192.168.31.195:08080",
+  ])
+    assert.throws(() =>
+      createReviewGateway({
+        hostname: host,
+        user: "review",
+        password,
+        allowHttp: true,
+      }),
+    );
+  assert.throws(() =>
+    createReviewGateway({
+      hostname: "192.168.31.195:8080",
+      user: "review",
+      password,
+    }),
+  );
 });

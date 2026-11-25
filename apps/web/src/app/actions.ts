@@ -2,7 +2,8 @@
 
 import { api, COOKIE } from "@/lib/api";
 import type { UserView } from "@praktikum/types";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { sessionCookieOptions } from "@/lib/session-cookie";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -24,6 +25,7 @@ function userMessage(error: unknown): string {
 }
 
 export async function signIn(form: FormData): Promise<void> {
+  const cookieOptions = sessionCookieOptions(process.env, await headers());
   let result: AuthResult;
   try {
     result = await api<AuthResult>("/auth/login", {
@@ -36,16 +38,11 @@ export async function signIn(form: FormData): Promise<void> {
   } catch (error) {
     redirect(`/login?error=${encodeURIComponent(userMessage(error))}`);
   }
-  (await cookies()).set(COOKIE, result.token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 14,
-  });
+  (await cookies()).set(COOKIE, result.token, cookieOptions);
   redirect(result.user.role === "SUPER_ADMIN" ? "/admin" : "/dashboard");
 }
 export async function register(form: FormData): Promise<void> {
+  const cookieOptions = sessionCookieOptions(process.env, await headers());
   let result: AuthResult;
   try {
     result = await api<AuthResult>("/auth/register", {
@@ -60,13 +57,7 @@ export async function register(form: FormData): Promise<void> {
   } catch (error) {
     redirect(`/register?error=${encodeURIComponent(userMessage(error))}`);
   }
-  (await cookies()).set(COOKIE, result.token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 14,
-  });
+  (await cookies()).set(COOKIE, result.token, cookieOptions);
   redirect("/dashboard");
 }
 export async function signOut(): Promise<void> {

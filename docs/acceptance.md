@@ -37,7 +37,7 @@ Document tests: реальные кириллические DOCX/DOC/PDF/TXT(UTF
 | Public auth/files/mobile |anonymous401, authorized login200; Secure/HttpOnly/Lax; foreign file404;390px nooverflow и replaytour|
 | Public registration after enabling |PASS: новая компания/OWNER/0balance/emptyworkspace/ownteam, onboarding, logout+login, Alpha download404;0AIcalls; тестtenant удалён|
 
-Действительный адрес: **https://nights-known-believed-meetup.trycloudflare.com**. Случайные gate/app credentials только в локальном `.runtime/review/access.txt`600. На текущей закрытой ссылке регистрация и Demo пополнение включены явно по уточнению заказчика. Обычный production без flags запрещает их. После смены review flag API перезапущен и HTTPS регистрация проверена заново. Первоначальный public тестregistration403 относится к состоянию **до** включения и не выдаётся за текущую политику.
+Действительный адрес: **https://coaches-explains-teach-hewlett.trycloudflare.com**. Случайные gate/app credentials только в локальном `.runtime/review/access.txt`600. На текущей закрытой ссылке регистрация и Demo пополнение включены явно по уточнению заказчика. Обычный production без flags запрещает их. После смены review flag API перезапущен и HTTPS регистрация проверена заново. Первоначальный public тестregistration403 относится к состоянию **до** включения и не выдаётся за текущую политику.
 
 Локальный browser harness заменяет только AiProvider через DI; auth/Prisma/PostgreSQL/Next/деньги настоящие. Публичная версия использует настоящий DeepSeek, без fixture режима. Отчёты, команды и границы: [browser-tests.md](browser-tests.md). Снимки: [обучение](screenshots/public-onboarding.jpg), [результат](screenshots/public-result.jpg), [мобильный тур](screenshots/public-mobile-tour.jpg).
 
@@ -83,3 +83,9 @@ OCR отсутствует; PDF нужен текстовый слой. Слож
 Отдельный `tests/public-quality-ui-check.mts` через публичный сайт: **PASS**. Сверены реальные100/72/8, все критерии/explanations/evidence/recommendations, разбор владельца,390px без горизонтального переполнения. Карточки полностью попадают в PNG ниже sticky шапки. Старые результаты отмечены прежней методикой, у owner видна кнопка обновления; employee не имеет формы ответа на старое задание. Прямой API POST получил409; owner snapshots подтвердили неизменность баланса, user.spent всех пользователей, операций, ledger и attempts. Все4 созданные сессии успешно отозваны,0AI. Первые тестовые ошибки были ошибками селекторов/расположения подписи; исправлены после эскалации сLuna кAstra, продукт ради теста не менялся.
 
 Локальные evidence: `.runtime/final-delivery-*.log`, `.runtime/playwright/final-delivery-browser.log`, `.runtime/review/final-ai-remote-smoke.log`, `.runtime/review/quality-ui-astra-acceptance.log`, `quality-ui-result.json`. Снимки в [full](screenshots/ai-quality-full.png), [partial](screenshots/ai-quality-partial.png), [unsafe](screenshots/ai-quality-unsafe.png). Приватные QA доступы добавлены только в `.runtime/review/access.txt`600.
+
+## HTTP по IP Mac — 25.11.2026
+
+Локальный review: **http://192.168.31.195:8080**. BasicAuth и tenant-сессии сохранены. PASS: unit33/33, lint/typecheck/build, Playwright LAN3/3 ролей, реальная HTTP регистрация→DOCX upload→оригинал по SHA256→logout/login, чужой Origin403 и anonymous401. HTTP cookie HttpOnly/Lax/Secure=false; отдельный HTTPS экземпляр сохранил Secure=true и прошёл3/3 ролей. AI в этих проверках не вызывался. Подробности и ограничения: [deployment](deployment.md), [журнал](development-log.md).
+
+Проверен LAN адрес с Mac; другое физическое устройство и прямой IP через Интернет не проверялись. Роутер не настроен, IP выдан DHCP, автозапуск/защита от сна не настроены. Это доступ в текущей локальной сети, не постоянный внешний hosting.
