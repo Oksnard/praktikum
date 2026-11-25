@@ -60,7 +60,7 @@ Seed идемпотентен, не сбрасывает изменённые п
 ```bash
 pnpm lint
 pnpm typecheck
-pnpm test              # 45 unit/focused tests: API25, web4, gateway/cloud9, edge7
+pnpm test              # 50 unit/focused tests: API25, web4, gateway/cloud9, edge12
 pnpm test:e2e          # настоящий HTTP + PostgreSQL, AI через DI fixture
 pnpm test:browser      # 5 Playwright Chromium сценариев, реальная БД, DI AI
 pnpm evals             # 8 recordings:5 исторических+3 task-aware, без внешнего API

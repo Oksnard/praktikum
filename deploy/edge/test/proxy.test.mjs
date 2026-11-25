@@ -47,7 +47,7 @@ test('foreign redirects/cookie domains and upstream failures fail generically wi
  for(const response of [new Response(null,{status:302,headers:{Location:'https://evil.example/'}}),new Response('bad',{headers:{'Set-Cookie':'praktikum_session=test; Domain=evil.example'}})]){
  const result=await proxyRequest(req(),env,async()=>{calls++;return response;});assert.equal(result.status,502);assert.equal(await result.text(),'Demo service temporarily unavailable');
  }
- const error=await proxyRequest(req(),env,async()=>{throw new Error('sensitive-internal-diagnostic');});assert.equal(error.status,502);assert.equal((await error.text()).includes('sensitive'),false);assert.equal(calls,2);
+ const error=await proxyRequest(req(),env,async()=>{throw new Error('sensitive-internal-diagnostic');});assert.equal(error.status,503);assert.equal((await error.text()).includes('sensitive'),false);assert.equal(calls,2);
 });
 test('declared and streamed oversized requests are bounded without buffering the full body',async()=>{
  let calls=0;
@@ -68,5 +68,69 @@ test('platform identities and unrelated cookies never reach Render; only app res
  assert.deepEqual(response.headers.getSetCookie(),['praktikum_session=app; Path=/; Secure; HttpOnly; SameSite=Lax']);
  for(const authorization of ['Bearer platform-jwt','token other']){
  await proxyRequest(req('/dashboard',{headers:{Authorization:authorization}}),env,async(_url,init)=>{assert.equal(init.headers.get('authorization'),null);return new Response('ok');});
+ }
+});
+
+test('root landing preserves actual Next relative redirect semantics through login, session, and expired session branches', async () => {
+ const basic = 'Basic dGVzdDpub3QtYS1zZWNyZXQ=';
+ const next = async (url, init) => {
+  const pathname = new URL(url).pathname;
+  if (!init.headers.get('authorization')) return new Response('Private', {status:401,headers:{'WWW-Authenticate':'Basic realm="review"'}});
+  const session = init.headers.get('cookie');
+  if (pathname === '/') return new Response(null, {status:307,headers:{Location:session?'/dashboard':'/login'}});
+  if (pathname === '/dashboard' && session !== 'praktikum_session=valid') return new Response(null,{status:307,headers:{Location:session?'/login':'/login?next=%2Fdashboard'}});
+  return new Response(pathname === '/dashboard' ? 'dashboard' : 'login');
+ };
+ assert.equal((await proxyRequest(req('/'),env,next)).status,401);
+ for (const [cookie,expectedPaths] of [
+  [null,['/','/login']],
+  ['praktikum_session=valid',['/','/dashboard']],
+  ['praktikum_session=expired',['/','/dashboard','/login']],
+ ]) {
+  let url=site+'/'; const paths=[];
+  for(let count=0;count<4;count++){
+   paths.push(new URL(url).pathname);
+   const response=await proxyRequest(new Request(url,{headers:{Authorization:basic,...(cookie?{Cookie:cookie}:{})}}),env,next);
+   assert.notEqual(response.status,502);
+   if(response.status===200)break;
+   assert.equal(response.status,307);
+   url=response.headers.get('location');assert.equal(new URL(url).origin,site);
+  }
+  assert.deepEqual(paths,expectedPaths);
+ }
+ // Preserve the strict redirect boundary: an internal/HTTP absolute URL is still rejected.
+ for(const Location of ['http://127.0.0.1:3300/login','http://praktikum-review-vhyg.onrender.com/login','//evil.example/login']){
+  const result=await proxyRequest(req('/'),env,async()=>new Response(null,{status:307,headers:{Location}}));assert.equal(result.status,502);
+ }
+});
+
+
+test('HTML root is a public no-data startup bridge; only hardcoded login/dashboard destinations are embedded', async()=>{
+ let calls=0;
+ for(const [cookie,destination] of [[null,'/login'],['other=platform-secret','/login'],['praktikum_session=private-session','/dashboard']]){
+ const response=await proxyRequest(req('/?next=https://evil.example',{headers:{Accept:'text/html',...(cookie?{Cookie:cookie}:{})}}),env,async()=>{calls++;throw new Error('Must not fetch app before startup bridge');});
+ assert.equal(response.status,200);const html=await response.text();assert.ok(html.includes(`const destination="${destination}"`));assert.ok(html.includes('/_review/ready'));assert.ok(html.includes('120000'));assert.ok(!html.includes('private-session'));assert.ok(!html.includes('platform-secret'));assert.ok(!html.includes('evil.example'));
+ assert.match(response.headers.get('content-security-policy'),/connect-src 'self'/);const nonce=/script-src 'nonce-([^']+)'/.exec(response.headers.get('content-security-policy'))[1];assert.ok(html.includes(`<script nonce="${nonce}">`));assert.equal(response.headers.get('cache-control'),'no-store');
+ }
+ assert.equal(calls,0);
+});
+test('only safe reads retry bounded transient failures; diagnostics contain only static reason classes',async()=>{
+ const logs=[];const waits=[];let calls=0;
+ const options={pause:async ms=>waits.push(ms),log:entry=>logs.push(entry)};
+ const response=await proxyRequest(req('/login',{headers:{Authorization:'Basic c2VjcmV0Og==',Cookie:'praktikum_session=private'}}),env,async()=>{calls++;return calls===1?new Response('booting',{status:502}):new Response('actual-login');},options);
+ assert.equal(response.status,200);assert.equal(await response.text(),'actual-login');assert.equal(calls,2);assert.deepEqual(waits,[600]);assert.deepEqual(logs,[{event:'edge_proxy_unavailable',reason:'upstream_http_502',method:'GET'}]);
+ calls=0;const head=await proxyRequest(req('/login',{method:'HEAD'}),env,async()=>{calls++;throw new Error('credential-must-not-log');},options);assert.equal(calls,2);assert.equal(head.status,503);assert.equal(await head.text(),'');assert.ok(!JSON.stringify(logs).includes('credential'));
+});
+test('mutations are never replayed or automatically reloaded after an uncertain upstream failure',async()=>{
+ for(const kind of ['http','transport']){
+ let calls=0;const logs=[];
+ const response=await proxyRequest(req('/dashboard',{method:'POST',headers:{Origin:site,Accept:'text/html','Next-Action':'paid-action'},body:'answer'}),env,async(_url,init)=>{calls++;assert.equal(await new Response(init.body).text(),'answer');if(kind==='transport')throw new Error('private-failure');return new Response('uncertain',{status:502});},{pause:async()=>{throw new Error('Must never wait/retry mutation');},log:entry=>logs.push(entry)});
+ assert.equal(calls,1);assert.equal(response.status,503);assert.ok(!(await response.text()).includes('<script'));assert.equal(logs[0].method,'MUTATION');
+ }
+});
+test('terminal navigation failures show bounded recovery UI while readiness/RSC remain non-HTML503',async()=>{
+ for(const [path,headers,htmlExpected]of [['/login',{Accept:'text/html'},true],['/_review/ready',{Accept:'application/json'},false],['/dashboard',{Accept:'text/html',RSC:'1'},false]]){
+ let calls=0;const response=await proxyRequest(req(path,{headers}),env,async()=>{calls++;return new Response('still starting',{status:503});},{pause:async()=>{},log:()=>{}});
+ assert.equal(calls,2);assert.equal(response.status,503);assert.equal(response.headers.get('retry-after'),'5');assert.equal((await response.text()).includes('<script'),htmlExpected);
  }
 });

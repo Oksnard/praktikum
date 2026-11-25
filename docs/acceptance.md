@@ -103,3 +103,7 @@ URL **https://praktikum-review-vhyg.onrender.com**; fresh cloud PostgreSQL18, в
 Проверено на бесплатном web512MiB с этим небольшим сценарием, не нагрузочный SLA. БД истекает25.12.2026; web засыпает после15мин простоя. Actual container-replacement persistence probe выполняется после следующего deploy без дополнительных AIвызовов. [Условия](free-cloud-demo.md).
 
 Контрольный deploy a76544d (тот же appcode, изменена только документация) завершился live25.11.2026. Root затем проверил после замены контейнера4оригинала owner/employee поSHA256, сохранённый report100, balance497048 и employeeSpent1757;login/logout/SecureHttpOnlyLax PASS,0новыхAI. [Запасной Cloudflare URL и сетевые пределы](cloudflare-edge.md):3/3роли+multipartupload/download/Origin403 PASS; directбезVPN изэтойсети timeout,доступностьбезVPNнеобещается.
+
+## Запасная ссылка: первый запуск после сна — 25.11.2026
+
+ПользовательскийGET/502 совпал с непрогретым Render, приложение готово примерно через56с. В опубликованной Workerversion2 добавлен root readiness bridge с автоматическим переходом только по204,120с/manualretry и CSPnonce. Safe reads≤2attempts; mutations не повторяются. 50/50testsPASS, freshSol securityreviewPASS; actualCF browser/CSP recovery12.472sPASS (две503 задержки локальноDI, затемreal204), root/login/session/logout390px, CSP0/unexpected5xx0/unauthorized401/foreignOrigin403. NoAIcalls, данные не менялись. [Подробности и граница проверки](cloudflare-edge.md).
