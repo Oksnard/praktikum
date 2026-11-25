@@ -7,7 +7,7 @@
     "build": "turbo run build",
     "lint": "eslint apps packages",
     "typecheck": "turbo run typecheck",
-    "test": "pnpm --filter @praktikum/types build && pnpm --filter @praktikum/api test && pnpm exec tsx --test apps/web/test/*.test.ts && node --test deploy/review-gateway.test.mjs deploy/cloud/supervisor.test.mjs",
+    "test": "pnpm --filter @praktikum/types build && pnpm --filter @praktikum/api test && pnpm exec tsx --test apps/web/test/*.test.ts && node --test deploy/review-gateway.test.mjs deploy/cloud/supervisor.test.mjs deploy/edge/test/proxy.test.mjs",
     "test:e2e": "pnpm --filter @praktikum/types build && node --env-file=.env --import tsx apps/api/test/e2e.ts",
     "evals": "pnpm --filter @praktikum/types build && node --env-file=.env --import tsx apps/api/test/evals.ts",
     "db:generate": "pnpm --filter @praktikum/api exec prisma generate",

@@ -12,9 +12,11 @@ SaaS для обучения сотрудников: материалы комп
 
 [Бесплатный облачный стенд и результаты проверки](docs/free-cloud-demo.md). [Deployment-артефакты и конфигурация](docs/render-cloud-source.md).
 
+Запасной Cloudflare-адрес того же приложения: **https://praktikum-demo.jetrook9.chatgpt.site**. В текущей сети Mac оба адреса успешно проверены с VPN; прямое соединение без VPN завершилось timeout. Это сетевое ограничение данной проверки, не доказательство доступности без VPN у получателя. [Устройство и проверки proxy](docs/cloudflare-edge.md).
+
 ## Локальный запуск
 
-Node22+ (compiled API проверен на22.23.5, разработка на25.9), pnpm10.11, PostgreSQL (проверено14), Python3 с `pypdf==6.14.2`. Для старого Word `.doc`: macOS `/usr/bin/textutil`, Linux `antiword`. Полные требования — [документы](docs/material-files.md).
+Node22+ (compiled API проверен на22.23.5, разработка на25.9), pnpm10.11, PostgreSQL (локально14, в Render18), Python3 с `pypdf==6.14.2`. Для старого Word `.doc`: macOS `/usr/bin/textutil`, Linux `antiword`. Полные требования — [документы](docs/material-files.md).
 
 ```bash
 cp .env.example .env  # только при первом запуске, не затирать существующий файл
@@ -58,7 +60,7 @@ Seed идемпотентен, не сбрасывает изменённые п
 ```bash
 pnpm lint
 pnpm typecheck
-pnpm test              # 38 unit/focused tests: API25, web4, gateway/cloud9
+pnpm test              # 45 unit/focused tests: API25, web4, gateway/cloud9, edge7
 pnpm test:e2e          # настоящий HTTP + PostgreSQL, AI через DI fixture
 pnpm test:browser      # 5 Playwright Chromium сценариев, реальная БД, DI AI
 pnpm evals             # 8 recordings:5 исторических+3 task-aware, без внешнего API
