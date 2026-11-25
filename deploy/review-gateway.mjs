@@ -6,7 +6,12 @@ import path from "node:path";
 function credentialHash(value) {
   return createHash("sha256").update(value).digest();
 }
-export function reviewBindAddress(bind = "127.0.0.1", allowHttp = false) {
+export function reviewBindAddress(
+  bind = "127.0.0.1",
+  allowHttp = false,
+  trustedRender = false,
+) {
+  if (trustedRender && !allowHttp && bind === "0.0.0.0") return bind;
   if (
     !isIP(bind) ||
     bind === "0.0.0.0" ||
@@ -23,9 +28,15 @@ export function createReviewGateway({
   password,
   upstreamPort = 3300,
   allowHttp = false,
+  trustedRender = false,
+  readiness,
   timeoutMs = 180000,
   maxBodyBytes = 6 * 1024 * 1024,
 }) {
+  if (trustedRender && allowHttp)
+    throw new Error("Render review requires HTTPS");
+  if (readiness && !trustedRender)
+    throw new Error("Public readiness requires trusted Render mode");
   if (allowHttp) {
     const match = /^([0-9.]+):([0-9]+)$/.exec(hostname);
     if (
@@ -84,6 +95,23 @@ export function createReviewGateway({
   const server = http.createServer(
     { maxHeaderSize: 16384 },
     async (req, res) => {
+      // Render probes may use an internal Host. This one fixed route reveals no data.
+      if (
+        trustedRender &&
+        readiness &&
+        req.method === "GET" &&
+        req.url === "/_review/ready"
+      ) {
+        let ready = false;
+        try {
+          ready = await readiness();
+        } catch {
+          /* fail closed */
+        }
+        response(res, ready ? 204 : 503, "");
+        req.resume();
+        return;
+      }
       if (req.headers.host?.toLowerCase() !== hostname.toLowerCase()) {
         response(res, 421, "Unexpected review host");
         req.resume();

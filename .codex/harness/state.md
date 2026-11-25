@@ -18,3 +18,7 @@
 - Limits: noOCR,5MiBfile/text60–12000, Demo payments/notifications, noSSO/resetpassword/RLS/automaticUNKNOWNrecovery/offsitebackup/permanenthosting, Chromiumdesktop390only; semantic quality accepted on finitefictional sample, human review remains.
 
 - 2026-11-25 HTTP acceptance: unit33/33, lint/typecheck/webbuildPASS; freshSolsecurity8/8PASS; LAN3roles5.7s + register/reload/DOCX201/hash/403/logout/loginPASS, own testtenant/filesremoved0AI. HTTPS3roles9.8s and Securetruecookie/logoutPASS. PDFs refreshed/verified outsideGit. Internet-by-IP remains unconfigured; pending user scope LAN vs Internet.
+
+- ACTIVE 2026-11-25: user now requests free Internet cloud hosting for one demo. Render Free web+PG selected, native plugin connection suggested/not yet confirmed. Sol owns isolated deploy/storage implementation; root provider auth/runtime/docs. gh scopes exclude codespace and API403; no paid/cloud resources created. New source not accepted/deployed until review+livechecks. Details docs/free-cloud-demo.md.
+
+- Render SOURCE READY/freshSolAPPROVE: Docker+freeBlueprint(privatePG[]), supervised API/Nextloopback+Rendergate, PostgresBytesStorage migration7+persist/isolation. Root38unit/lint/typecheckPASS; authorNode22isolatedbuild/rootCWDlogin200+freshPGHTTPpersistencePASS. Macruntimeuntouched. ActualDocker/512MiB/publiccloudjourneyUNPROVEN; Renderconnectionstillnotconfirmed, noresources/spend. Privatepreparedvars.runtime/render/private-env.json0600; neverprint. Next:connectRender→inspectworkspace/zero-cost→createfreePG+web/secrets→actualbuild+publicsmoke.

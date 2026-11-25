@@ -118,3 +118,10 @@ model Notification {
  message String
  createdAt DateTime @default(now())
 }
+
+// Optional durable file backend for small review deployments with ephemeral disks.
+model StoredFile {
+ id String @id @default(uuid())
+ data Bytes
+ createdAt DateTime @default(now())
+}

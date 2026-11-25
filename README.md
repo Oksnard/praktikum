@@ -10,6 +10,8 @@ SaaS для обучения сотрудников: материалы комп
 
 Можно нажать «Создать компанию»: регистрация создаёт владельца и отдельный пустой кабинет с нулевым балансом. Команда, документы, задания, результаты и финансы ограничены компанией из сессии. Подстановка чужого ID не даёт доступа. Для проверки AI новый владелец может воспользоваться явно помеченным Demo пополнением. Публичный review использует отдельную БД со случайными паролями; локальные seed-пароли ниже там не работают. [Запуск и сопровождение](docs/deployment.md).
 
+Для бесплатного облачного показа подготовлен [Render Free release](docs/free-cloud-demo.md). Он ещё не опубликован: требуется подключение Render и фактический cloud build/smoke. [Deployment-артефакты и конфигурация](docs/render-cloud-source.md).
+
 ## Локальный запуск
 
 Node22+ (compiled API проверен на22.23.5, разработка на25.9), pnpm10.11, PostgreSQL (проверено14), Python3 с `pypdf==6.14.2`. Для старого Word `.doc`: macOS `/usr/bin/textutil`, Linux `antiword`. Полные требования — [документы](docs/material-files.md).
@@ -56,7 +58,7 @@ Seed идемпотентен, не сбрасывает изменённые п
 ```bash
 pnpm lint
 pnpm typecheck
-pnpm test              # 33 unit/focused tests: API25, web4, gateway4
+pnpm test              # 38 unit/focused tests: API25, web4, gateway/cloud9
 pnpm test:e2e          # настоящий HTTP + PostgreSQL, AI через DI fixture
 pnpm test:browser      # 5 Playwright Chromium сценариев, реальная БД, DI AI
 pnpm evals             # 8 recordings:5 исторических+3 task-aware, без внешнего API

@@ -46,7 +46,7 @@ erDiagram
  MATERIAL ||--o| PRIVATE_FILE : optional_original
 ```
 
-Физическая схема и шесть миграций: [Prisma](../apps/api/prisma/schema.prisma). Company links — application-level; Session→User, Assignment→Material, Attempt→User/Assignment, AiCall→Operation имеют FK. Composite tenant FK/RLS нет. JSON результата сохраняет критерии/score/evidence/unsupported_claims/gaps/feedback/recommendations/personal_material.
+Физическая схема и семь миграций: [Prisma](../apps/api/prisma/schema.prisma). Company links — application-level; Session→User, Assignment→Material, Attempt→User/Assignment, AiCall→Operation имеют FK. Composite tenant FK/RLS нет. JSON результата сохраняет критерии/score/evidence/unsupported_claims/gaps/feedback/recommendations/personal_material.
 
 ## Аутентификация, роли и изоляция
 
@@ -97,3 +97,5 @@ Compiled API/common package проверены на Node22.23.5 smoke; полн�
 Источники Context7 и owning-source: [Nest DI/guards](https://github.com/nestjs/docs.nestjs.com/blob/master/content/fundamentals/execution-context.md), [Next Server Actions/origins](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverActions), [Prisma transactions](https://www.prisma.io/docs/orm/prisma-client/queries/transactions), [DeepSeek JSON mode](https://api-docs.deepseek.com/guides/json_mode), [Zod strings](https://zod.dev/api?id=strings). Свежие результаты проверок — [project audit](project-audit.md).
 
 Task-aware assessment V2, legacy compatibility и резерв195669≤200000 описаны в [ADR0014](decisions/0014-task-aware-evaluation.md).
+
+Для бесплатного cloud review добавлен opt-in `PostgresFileStorage`: оригиналы хранятся в PostgreSQL `bytea`, в том же интерфейсе FileStorage. Локальный default не меняется. Это сохраняет файлы при перезапуске Render Free без платного диска. [Конфигурация и ограничения](render-cloud-source.md).

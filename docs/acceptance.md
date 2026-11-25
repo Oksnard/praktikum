@@ -89,3 +89,7 @@ OCR отсутствует; PDF нужен текстовый слой. Слож
 Локальный review: **http://192.168.31.195:8080**. BasicAuth и tenant-сессии сохранены. PASS: unit33/33, lint/typecheck/build, Playwright LAN3/3 ролей, реальная HTTP регистрация→DOCX upload→оригинал по SHA256→logout/login, чужой Origin403 и anonymous401. HTTP cookie HttpOnly/Lax/Secure=false; отдельный HTTPS экземпляр сохранил Secure=true и прошёл3/3 ролей. AI в этих проверках не вызывался. Подробности и ограничения: [deployment](deployment.md), [журнал](development-log.md).
 
 Проверен LAN адрес с Mac; другое физическое устройство и прямой IP через Интернет не проверялись. Роутер не настроен, IP выдан DHCP, автозапуск/защита от сна не настроены. Это доступ в текущей локальной сети, не постоянный внешний hosting.
+
+## Бесплатный cloud review — подготовка25.11.2026
+
+Source readiness PASS:38 unit/focused, lint/typecheck; isolated Node22 build/start; real PG upload→restart→download/isolation; fresh Sol source acceptance. Cloud deployment **ещё не выполнен**: требуется подключение Render, настоящий Docker build и внешний smoke. Публичный URL Render пока не получен. Текущие Mac адреса выше не являются облачным результатом. [Конфигурация](render-cloud-source.md).

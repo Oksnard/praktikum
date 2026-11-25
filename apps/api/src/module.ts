@@ -1,7 +1,7 @@
 import { DocumentsController } from "./documents/controller";
 import { DocumentsService } from "./documents/service";
 import { DocumentParser } from "./documents/parser";
-import { FileStorage, LocalFileStorage } from "./documents/storage";
+import { FileStorage, configuredFileStorage } from "./documents/storage";
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { Repository } from "./repository";
@@ -21,7 +21,11 @@ import {
     Repository,
     DocumentsService,
     DocumentParser,
-    { provide: FileStorage, useClass: LocalFileStorage },
+    {
+      provide: FileStorage,
+      useFactory: configuredFileStorage,
+      inject: [Repository],
+    },
     AppService,
     AiService,
     { provide: AiProvider, useFactory: configuredAiProvider },

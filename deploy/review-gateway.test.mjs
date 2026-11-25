@@ -258,3 +258,76 @@ test("HTTP mode rejects ambiguous authorities and external bind is opt-in", asyn
     }),
   );
 });
+
+test("trusted Render exposes only fixed boring readiness, all app paths remain protected", async () => {
+  assert.throws(() =>
+    createReviewGateway({
+      hostname,
+      user: "review",
+      password,
+      readiness: async () => true,
+    }),
+  );
+  assert.throws(() =>
+    createReviewGateway({
+      hostname: "192.168.31.195:8080",
+      user: "review",
+      password,
+      trustedRender: true,
+      allowHttp: true,
+    }),
+  );
+  const { reviewBindAddress } = await import("./review-gateway.mjs");
+  assert.equal(reviewBindAddress("0.0.0.0", false, true), "0.0.0.0");
+  let ready = false;
+  const gate = createReviewGateway({
+    hostname,
+    user: "review",
+    password,
+    trustedRender: true,
+    readiness: async () => ready,
+  });
+  const port = await listen(gate);
+  try {
+    assert.equal(
+      (
+        await request(
+          port,
+          { Host: "internal-render-probe" },
+          "",
+          "/_review/ready",
+        )
+      ).status,
+      503,
+    );
+    ready = true;
+    const result = await request(
+      port,
+      { Host: "internal-render-probe" },
+      "",
+      "/_review/ready",
+    );
+    assert.equal(result.status, 204);
+    assert.equal(result.data, "");
+    assert.equal(result.headers["cache-control"], "no-store");
+    for (const path of [
+      "/health",
+      "/login",
+      "/_review/ready?extra=1",
+      "/_next/static/test.js",
+    ])
+      assert.equal((await request(port, {}, "", path)).status, 401);
+    assert.equal((await request(port, {}, "x", "/_review/ready")).status, 401);
+    assert.equal(
+      (
+        await request(port, {
+          "X-Forwarded-Proto": "http",
+          Authorization: auth,
+        })
+      ).status,
+      308,
+    );
+  } finally {
+    await close(gate);
+  }
+});
