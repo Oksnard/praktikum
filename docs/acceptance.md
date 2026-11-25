@@ -93,3 +93,11 @@ OCR отсутствует; PDF нужен текстовый слой. Слож
 ## Бесплатный cloud review — подготовка25.11.2026
 
 Source readiness PASS:38 unit/focused, lint/typecheck; isolated Node22 build/start; real PG upload→restart→download/isolation; fresh Sol source acceptance. Cloud deployment **ещё не выполнен**: требуется подключение Render, настоящий Docker build и внешний smoke. Публичный URL Render пока не получен. Текущие Mac адреса выше не являются облачным результатом. [Конфигурация](render-cloud-source.md).
+
+## Фактический Render Free deploy — 25.11.2026
+
+URL **https://praktikum-review-vhyg.onrender.com**; fresh cloud PostgreSQL18, внутренний DSN/публичный allowlist[], оба тарифаfree. Docker Linux Node22 build commit3d1b266→deploylive за2мин15с; публичный GETready204/anonymous401, Playwright3/3 ролиPASS17.8s. Private env переданы штатно, Next не получает provider/DSN/seed/gate secrets. Mac для этого URL не используется.
+
+Полный publicUI сценарий PASS: новая компания0balance/empty, tour/replay/logout/login/cookieSecureHttpOnlyLax, Demo500000, сотрудник500000; Linux WordDOCX/PDF/TXT/DOC, извлечённый текст и originalSHA256 owner/employee совпали, foreigncompany404, foreignOrigin403. Ровнооднагенерация иоднаоценка DeepSeek; отчёт100=40+30+30 с4точными цитатами. Стоимость2952внутреннихкредитов (1195+1757), остаток497048=суммажурнала, employeeSpent1757. QA/audit retained отдельно от старой Mac QA; новые credentials600 только.runtime/render.
+
+Проверено на бесплатном web512MiB с этим небольшим сценарием, не нагрузочный SLA. БД истекает25.12.2026; web засыпает после15мин простоя. Actual container-replacement persistence probe выполняется после следующего deploy без дополнительных AIвызовов. [Условия](free-cloud-demo.md).

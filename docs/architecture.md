@@ -15,7 +15,7 @@ flowchart LR
  API -. optional strict JSON Schema .-> OA[OpenAI]
 ```
 
-Это текущая **временная публикация с Mac**, а не VPS hosting. Публичный адрес: https://coaches-explains-teach-hewlett.trycloudflare.com . Он зависит от работающих Mac, сети и tunnel. Публичная review БД отдельна от локальной демо/тестовой; известные demo passwords не используются. Systemd/nginx templates — будущий вариант, не свидетельство развёртывания на VPS. Подробности: [deployment](deployment.md), [ADR0011](decisions/0011-temporary-mac-review.md).
+Текущий основной hosting — **Render Free**, https://praktikum-review-vhyg.onrender.com . API/Next/gateway работают в одном Docker web-сервисе, PostgreSQL18 отдельно в private network того же региона. Mac для этого URL не нужен. Срок бесплатной БД до25.12.2026; cloud review БД новая, отдельно от локальной демо/тестовой и предыдущего Mac review. Известные локальные demo passwords не используются. Systemd/nginx templates — будущий вариант, не свидетельство развёртывания на VPS. Подробности: [deployment](deployment.md), [ADR0011](decisions/0011-temporary-mac-review.md).
 
 ## Компоненты и данные
 

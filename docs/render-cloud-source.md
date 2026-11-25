@@ -1,6 +1,6 @@
 # Render Free: подготовленный cloud release
 
-Это deployment-артефакты, **не свидетельство состоявшейся cloud-публикации**. Фактическую ссылку, build и smoke фиксирует root после создания ресурсов.
+Развёрнуто25.11.2026: **https://praktikum-review-vhyg.onrender.com**. Первая фактическая Docker Linux сборка commit3d1b266→live; готовность204, анонимный вход401, внешние Playwright3/3 роли PASS17.8s. [Результаты и пределы](free-cloud-demo.md).
 
 ## Источники, проверенные 25.11.2026
 
@@ -29,4 +29,6 @@ Render задаёт `RENDER=true`, `RENDER_EXTERNAL_HOSTNAME` и `PORT`. Обя�
 
 `node --test deploy/review-gateway.test.mjs deploy/cloud/supervisor.test.mjs`: security/config/readiness/real-child lifecycle. `tests/cloud-storage-e2e.mts` требует новую отдельную мигрированную PG БД: real HTTP upload/download после API restart, owner/employee разрешены, foreign404/anonymous401, seed idempotency, oversized bytes/key rejection. В тесте нет AI calls. Изолированная БД удаляется оператором после проверки. Root дополнительно проверяет реальный Render build, 512MiB runtime, parser dependencies и публичные cookies/tenant flows; без этого cloud success не заявляется.
 
-Фактический локальный preflight: 25 API unit + 9 gateway/supervisor tests PASS; API tsc PASS; изолированные Next16.4.6 build/start на Node22.20.0 PASS (запуск из release root с аргументом `apps/web`), настоящий login HTML200 через Render-mode gate. Fresh local PostgreSQL7migrations + bytes/HTTP/restart/tenant/seed regression PASS, только созданная тестом БД удалена. Active Mac `.next` и private review БД не менялись. Docker build/Render memory/public smoke пока не выполнялись.
+Фактический локальный preflight: 25 API unit + 9 gateway/supervisor tests PASS; API tsc PASS; изолированные Next16.4.6 build/start на Node22.20.0 PASS (запуск из release root с аргументом `apps/web`), настоящий login HTML200 через Render-mode gate. Fresh local PostgreSQL7migrations + bytes/HTTP/restart/tenant/seed regression PASS, только созданная тестом БД удалена. Active Mac `.next` и private review БД не менялись. Фактический Docker Linux build и публичный smoke3/3 затем прошли на Render Free512MiB. Это не нагрузочное тестирование; runtime memory metrics рассматриваются отдельно, сохраняется предел512MiB.
+
+Публичный полный сценарий25.11.2026 PASS: новая пустая компания/0balance, Secure/HttpOnly/Lax, onboarding/replay/logout/login, Demo500000, employee limit500000; DOCX1929chars и PDF/TXT/DOC128chars, owner/employee SHA256 оригиналов совпали, чужой tenant404 и Origin403. Реальные DeepSeek generate+grade:1195+1757=2952 внутренних кредита; оценка100=40+30+30 с4точными цитатами; баланс497048 равен сумме журнала. QA компания и аудит сохранены, повторных AI действий для redeploy не выполняется. Проверка фактической замены контейнера фиксируется отдельно после deploy.
